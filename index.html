@@ -345,6 +345,7 @@
     transition: transform .34s cubic-bezier(.2, .85, .25, 1);
   }
   .sheet[open] { display: flex; flex-direction: column; }
+  .sheet:focus { outline: none; }
   .sheet.is-open { transform: none; }
   .sheet::backdrop { background: rgba(22, 51, 91, 0); transition: background-color .3s; }
   .sheet.is-open::backdrop { background: rgba(22, 51, 91, .46); }
@@ -380,7 +381,8 @@
   }
   .sheet-close svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; }
 
-  .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  /* flex-basis phải là auto: với "flex: 1" Safari trên iPhone co phần này về 0 vì bảng không có chiều cao cố định */
+  .sheet-body { flex: 0 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 
   .gallery {
     display: flex;
@@ -597,7 +599,7 @@
 
 <nav class="contact-bar" aria-label="Liên hệ shop"></nav>
 
-<dialog class="sheet" aria-labelledby="sheet-title">
+<dialog class="sheet" aria-labelledby="sheet-title" tabindex="-1">
   <div class="sheet-grab">
     <button class="sheet-close" type="button" aria-label="Đóng">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -806,7 +808,10 @@ function showSheet(p) {
   clearTimeout(closeTimer);
   renderSheet(p);
   $('.sheet-body').scrollTop = 0;
-  if (!sheet.open) sheet.showModal();
+  if (!sheet.open) {
+    sheet.showModal();
+    sheet.focus(); // không để nút đóng tự nhận focus và hiện viền
+  }
   document.documentElement.classList.add('sheet-open');
   requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('is-open')));
 }
