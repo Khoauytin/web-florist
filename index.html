@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bích Ngọc Florist – Hoa lụa, hoa sáp handmade cao cấp</title>
+<meta name="description" content="Các mẫu hoa bó, hoa hộp, hoa giỏ và hoa lồng đèn handmade của Bích Ngọc Florist, kèm giá và kích thước.">
+<meta name="theme-color" content="#86B6DE">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,100;1,9..144,300..900,100&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Màu lấy từ ảnh hero: trời xanh, hồng, cúc cam, vàng bơ, tím nhạt */
+    --ink: #16335B;
+    --ink-soft: #566B8C;
+    --line: #E4EBF4;
+    --paper: #FFFFFF;
+    --sky: #93C0DD;
+    --sky-deep: #7EAFDC;
+    --sky-pale: #EEF6FC;
+    --rose: #F2798A;
+    --rose-deep: #C8385A;
+    --marigold: #F58A2E;
+    --butter: #F2C230;
+    --lilac: #A990E2;
+
+    --display: "Fraunces", "Times New Roman", serif;
+    --body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+    --gutter: 16px;
+    --bar-h: 68px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  html.sheet-open { overflow: hidden; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.55;
+    padding-bottom: calc(var(--bar-h) + var(--safe-b));
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 88vh;
+    min-height: 88svh;
+    overflow: hidden;
+    border-radius: 0 0 28px 28px;
+    /* Lớp dưới chạy ngang theo đúng màu trời ở mép trên của ảnh (trái nhạt, phải đậm) để ảnh hoà vào nền */
+    background:
+      linear-gradient(180deg, var(--sky-deep) 0%, rgba(126, 175, 220, 0) 56%),
+      linear-gradient(90deg, #BCD7EC 0%, var(--sky) 50%, #76A2D0 100%);
+  }
+  .hero-copy {
+    position: relative;
+    z-index: 1;
+    padding: clamp(28px, 7vh, 60px) 22px 0;
+  }
+  .hero h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100;
+    font-weight: 800;
+    font-size: clamp(3.1rem, 15.5vw, 5.6rem);
+    line-height: .92;
+    letter-spacing: -.025em;
+  }
+  .hero h1 em {
+    display: block;
+    font-weight: 400;
+    letter-spacing: -.01em;
+    color: #fff;
+    text-shadow: 0 1px 14px rgba(22, 51, 91, .28);
+  }
+  .hero-slogan {
+    margin: 16px 0 0;
+    max-width: 17em;
+    text-wrap: balance;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    padding: 12px 20px 12px 22px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 6px 20px rgba(22, 51, 91, .16);
+  }
+  .hero-cta svg { width: 18px; height: 18px; }
+  /* Điện thoại: ảnh chỉ phóng nhẹ 120% để cả bó hoa nằm trọn chiều ngang, phần bị cắt hai bên chỉ là trời */
+  .hero-photo {
+    position: relative;
+    margin-top: auto;
+    padding-top: 12px;
+  }
+  .hero-photo img {
+    display: block;
+    width: 120%;
+    max-width: none;
+    height: auto;
+    margin-left: -10%;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18%);
+            mask-image: linear-gradient(to bottom, transparent 0, #000 18%);
+  }
+
+  /* ---------- Giới thiệu ---------- */
+  .intro {
+    padding: 48px 26px 40px;
+    max-width: 44rem;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .intro p {
+    margin: 0;
+    text-wrap: balance;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100;
+    font-weight: 400;
+    font-size: 1.28rem;
+    line-height: 1.45;
+  }
+  .intro p + p {
+    margin-top: 14px;
+    font-family: var(--body);
+    font-size: .98rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- Tab danh mục ---------- */
+  .tabs-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(255, 255, 255, .94);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 10px var(--gutter);
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-padding-inline: var(--gutter);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px 0 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    font-weight: 600;
+    font-size: .95rem;
+    white-space: nowrap;
+    transition: background-color .18s, border-color .18s;
+  }
+  .tab::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--c);
+    transition: background-color .18s;
+  }
+  .tab[aria-selected="true"] { background: var(--c); border-color: var(--c); }
+  .tab[aria-selected="true"]::before { background: #fff; }
+
+  /* ---------- Lưới sản phẩm ---------- */
+  .catalog {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px var(--gutter) 40px;
+    scroll-margin-top: 0;
+  }
+  .catalog-hint {
+    margin: 0 0 14px;
+    font-size: .875rem;
+    color: var(--ink-soft);
+  }
+  .grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 12px;
+  }
+  .card {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card-photo {
+    display: block;
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: 18px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--c) 34%, #fff);
+    transition: transform .2s ease;
+  }
+  .card:active .card-photo { transform: scale(.97); }
+  .card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    margin-top: 10px;
+    font-size: .92rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .card-price {
+    display: block;
+    margin-top: 3px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--rose-deep);
+  }
+  .grid li { animation: rise .28s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+  /* Khung ảnh tạm khi chưa có ảnh thật */
+  .ph {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(120% 80% at 20% 10%, rgba(255, 255, 255, .55), transparent 60%),
+      color-mix(in srgb, var(--c) var(--mix, 36%), #fff);
+  }
+  .ph svg { width: 46%; height: auto; stroke: #fff; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .ph-label {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--ink);
+    opacity: .7;
+  }
+
+  /* ---------- Chân trang ---------- */
+  .foot {
+    padding: 30px 22px 34px;
+    background: var(--sky-pale);
+    border-radius: 28px 28px 0 0;
+    text-align: center;
+  }
+  .foot p { margin: 4px 0 0; font-size: .92rem; color: var(--ink-soft); }
+  .foot .foot-name {
+    margin: 0;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--ink);
+  }
+  .foot .demo-note { margin-top: 16px; font-size: .8rem; }
+
+  /* ---------- Thanh liên hệ cố định ---------- */
+  .contact-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 10px 12px calc(10px + var(--safe-b));
+    background: rgba(255, 255, 255, .96);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+  }
+  .contact-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 48px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--sky-pale);
+    font-size: .9rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .contact-btn svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
+  .contact-btn.is-main { background: var(--ink); color: #fff; }
+
+  /* ---------- Bảng chi tiết trượt từ dưới lên ---------- */
+  .sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    max-height: 92svh;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 26px 26px 0 0;
+    background: #fff;
+    color: var(--ink);
+    overflow: hidden;
+    transform: translateY(100%);
+    transition: transform .34s cubic-bezier(.2, .85, .25, 1);
+  }
+  .sheet[open] { display: flex; flex-direction: column; }
+  .sheet.is-open { transform: none; }
+  .sheet::backdrop { background: rgba(22, 51, 91, 0); transition: background-color .3s; }
+  .sheet.is-open::backdrop { background: rgba(22, 51, 91, .46); }
+
+  .sheet-grab {
+    position: relative;
+    flex: none;
+    height: 44px;
+    touch-action: none;
+  }
+  .sheet-grab::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    width: 44px;
+    height: 5px;
+    margin-left: -22px;
+    border-radius: 3px;
+    background: #CDD7E5;
+  }
+  .sheet-close {
+    position: absolute;
+    right: 8px;
+    top: 4px;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--sky-pale);
+  }
+  .sheet-close svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; }
+
+  .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+
+  .gallery {
+    display: flex;
+    gap: 10px;
+    padding: 4px 20px 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 20px;
+    scrollbar-width: none;
+  }
+  .gallery::-webkit-scrollbar { display: none; }
+  .slide {
+    position: relative;
+    flex: none;
+    width: 82%;
+    aspect-ratio: 4 / 5;
+    border-radius: 20px;
+    overflow: hidden;
+    scroll-snap-align: start;
+    background: var(--sky-pale);
+  }
+  .slide:only-child { width: 100%; }
+  .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 0 0;
+  }
+  .dots i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #CDD7E5;
+    transition: width .2s, background-color .2s;
+  }
+  .dots i.on { width: 20px; border-radius: 4px; background: var(--c); }
+
+  .info { padding: 16px 20px 22px; }
+  .info-cat {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .84rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .info-cat::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+  .info h2 {
+    margin: 4px 0 0;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100;
+    font-weight: 700;
+    font-size: 1.7rem;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+  }
+  .info-price { margin: 6px 0 0; font-size: 1.35rem; font-weight: 700; color: var(--rose-deep); }
+
+  .specs { margin: 14px 0 0; border-top: 1px solid var(--line); }
+  .specs div {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .specs dt { font-size: .88rem; color: var(--ink-soft); }
+  .specs dd { margin: 0; font-size: .95rem; font-weight: 500; }
+  .info-note { margin: 14px 0 0; font-size: .88rem; color: var(--ink-soft); }
+
+  .sheet-actions {
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 10px 16px calc(12px + var(--safe-b));
+    border-top: 1px solid var(--line);
+    background: #fff;
+  }
+  .sheet-actions .contact-btn { min-height: 52px; font-size: .98rem; }
+  .sheet-actions .contact-btn:not(.is-main) { padding: 0 18px; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--bar-h) + var(--safe-b) + 14px);
+    z-index: 60;
+    transform: translate(-50%, 12px);
+    max-width: calc(100vw - 32px);
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #fff;
+    font-size: .88rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- Máy tính bảng / máy tính ---------- */
+  @media (min-width: 640px) {
+    :root { --gutter: 24px; }
+    .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px 18px; }
+    .card-name { font-size: 1rem; }
+    .contact-bar {
+      left: 50%;
+      right: auto;
+      bottom: 16px;
+      width: 440px;
+      transform: translateX(-50%);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 8px;
+      box-shadow: 0 10px 30px rgba(22, 51, 91, .14);
+    }
+    body { padding-bottom: 104px; }
+    .toast { bottom: 104px; }
+  }
+  @media (min-width: 900px) {
+    .hero {
+      flex-direction: row;
+      align-items: center;
+      min-height: 0;
+      height: min(86vh, 760px);
+      background: linear-gradient(90deg, #C6DEF1 0%, #B8D7EC 46%, var(--sky) 100%);
+    }
+    .hero-copy { flex: 0 0 42%; padding: 0 0 0 clamp(32px, 6vw, 96px); }
+    .hero h1 { font-size: clamp(4rem, 7.4vw, 6.6rem); }
+    .hero-slogan { font-size: 1.3rem; }
+    .hero-photo { flex: 1; align-self: stretch; margin: 0 0 0 -6%; padding: 0; }
+    .hero-photo img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      object-fit: cover;
+      object-position: 50% 50%;
+      -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22%);
+              mask-image: linear-gradient(to right, transparent 0, #000 22%);
+    }
+    .intro { padding: 64px 24px 48px; }
+    .intro p { font-size: 1.6rem; }
+    .tabs { justify-content: center; }
+    .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 36px 22px; }
+    .card:hover .card-photo { transform: translateY(-4px); }
+
+    .sheet {
+      inset: 0;
+      width: min(900px, 92vw);
+      height: fit-content;
+      max-height: 88vh;
+      margin: auto;
+      border-radius: 26px;
+      transform: translateY(24px);
+      opacity: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .sheet.is-open { opacity: 1; }
+    .sheet-grab::before { display: none; }
+    .sheet-view { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+    .gallery { padding-right: 0; }
+    .info { padding: 4px 28px 24px; }
+    .sheet-actions { padding: 12px 24px 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-copy">
+    <h1>Bích Ngọc <em>Florist</em></h1>
+    <p class="hero-slogan">Hoa lụa, hoa sáp handmade cao cấp</p>
+    <a class="hero-cta" href="#mau-hoa">
+      Xem mẫu hoa
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+    </a>
+  </div>
+  <div class="hero-photo">
+    <img src="hero.jpg" alt="Bó hoa nhiều màu giơ lên giữa trời xanh" width="2000" height="1408" fetchpriority="high">
+  </div>
+</header>
+
+<main>
+  <section class="intro" aria-label="Giới thiệu">
+    <p>Bích Ngọc Florist là tiệm hoa handmade tại Hà Nội, chuyên hoa lụa và hoa sáp được kết thủ công bằng tay.</p>
+    <p>Hoa giữ dáng, giữ màu lâu và không cần tưới nước, hợp để tặng hoặc trang trí. Bạn xem mẫu bên dưới, thích mẫu nào thì nhắn shop để được tư vấn.</p>
+  </section>
+
+  <div class="tabs-wrap" id="mau-hoa">
+    <div class="tabs" role="tablist" aria-label="Dòng sản phẩm"></div>
+  </div>
+
+  <section class="catalog" id="catalog" role="tabpanel" aria-live="polite">
+    <p class="catalog-hint"></p>
+    <ul class="grid"></ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <p class="foot-name">Bích Ngọc Florist</p>
+  <p>Hoa lụa, hoa sáp handmade cao cấp · Hà Nội</p>
+  <p class="demo-note" hidden>Bản xem thử giao diện: tên, giá và ảnh sản phẩm đang là dữ liệu mẫu.</p>
+</footer>
+
+<nav class="contact-bar" aria-label="Liên hệ shop"></nav>
+
+<dialog class="sheet" aria-labelledby="sheet-title">
+  <div class="sheet-grab">
+    <button class="sheet-close" type="button" aria-label="Đóng">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body"><div class="sheet-view"></div></div>
+  <div class="sheet-actions"></div>
+</dialog>
+
+<div class="toast" role="status" aria-live="polite"></div>
+
+<noscript><p style="padding:24px">Trang cần bật JavaScript để hiển thị danh sách mẫu hoa.</p></noscript>
+
+<script>
+/* =====================================================================
+   PHẦN DỮ LIỆU — chỉ cần sửa ở đây khi đổi thông tin shop hoặc sản phẩm
+   ===================================================================== */
+
+const SHOP = {
+  facebook:  'https://www.facebook.com/BichNgocFlorist',
+  messenger: 'https://m.me/BichNgocFlorist',
+  tiktok:    '',   // ví dụ: 'https://www.tiktok.com/@tenkenh'
+  phone:     '',   // ví dụ: '0912345678'
+  demo:      true  // đổi thành false khi đã nhập dữ liệu thật
+};
+
+const CATEGORIES = [
+  { id: 'bo',      name: 'Hoa bó',       color: '#F2798A' },
+  { id: 'hop',     name: 'Hoa hộp',      color: '#F58A2E' },
+  { id: 'gio',     name: 'Hoa giỏ',      color: '#F2C230' },
+  { id: 'longden', name: 'Hoa lồng đèn', color: '#A990E2' }
+];
+
+/* Mỗi sản phẩm một dòng. images: 2–4 ảnh tỉ lệ 4:5, ảnh đầu tiên là ảnh hiện ngoài danh sách.
+   Để images trống thì trang tự hiện khung màu tạm. Muốn ẩn một mẫu: xoá dòng đó. */
+const PRODUCTS = [
+  { category: 'bo', name: 'Bó hồng pastel', price: 350000, size: 'Cao 45cm, ngang 30cm', colors: 'Hồng pastel, kem', material: 'Hoa lụa', images: [] },
+  { category: 'bo', name: 'Bó cúc họa mi nắng sớm', price: 280000, size: 'Cao 40cm, ngang 25cm', colors: 'Trắng, vàng', material: 'Hoa lụa', images: [] },
+  { category: 'bo', name: 'Bó hồng sáp đỏ 20 bông', price: 420000, size: 'Cao 50cm, ngang 35cm', colors: 'Đỏ', material: 'Hoa sáp', images: [] },
+
+  { category: 'hop', name: 'Hộp hồng sáp trái tim', price: 390000, size: 'Hộp 22 × 22 × 12cm', colors: 'Đỏ, hồng', material: 'Hoa sáp', images: [] },
+  { category: 'hop', name: 'Hộp mẫu đơn kem', price: 520000, size: 'Hộp tròn 25cm, cao 18cm', colors: 'Kem, hồng phấn', material: 'Hoa lụa', images: [] },
+  { category: 'hop', name: 'Hộp hoa mix cam vàng', price: 450000, size: 'Hộp 20 × 20 × 15cm', colors: 'Cam, vàng', material: 'Hoa lụa', images: [] },
+
+  { category: 'gio', name: 'Giỏ hướng dương mini', price: 320000, size: 'Cao 35cm, ngang 25cm', colors: 'Vàng', material: 'Hoa lụa', images: [] },
+  { category: 'gio', name: 'Giỏ hồng lụa đồng quê', price: 480000, size: 'Cao 45cm, ngang 35cm', colors: 'Hồng, trắng, xanh lá', material: 'Hoa lụa', images: [] },
+  { category: 'gio', name: 'Giỏ baby tím', price: 360000, size: 'Cao 38cm, ngang 28cm', colors: 'Tím nhạt, trắng', material: 'Hoa lụa', images: [] },
+
+  { category: 'longden', name: 'Lồng đèn hồng sáp trắng', price: 550000, size: 'Lồng đèn cao 40cm', colors: 'Trắng, kem', material: 'Hoa sáp', images: [] },
+  { category: 'longden', name: 'Lồng đèn mẫu đơn hồng', price: 620000, size: 'Lồng đèn cao 45cm', colors: 'Hồng', material: 'Hoa lụa', images: [] },
+  { category: 'longden', name: 'Lồng đèn hoa mix pastel', price: 590000, size: 'Lồng đèn cao 40cm', colors: 'Hồng, vàng, tím nhạt', material: 'Hoa lụa', images: [] }
+];
+
+/* ===================== HẾT PHẦN DỮ LIỆU ===================== */
+
+// Đường dẫn riêng của mỗi mẫu được tạo từ tên, ví dụ "Bó hồng pastel" -> #bo-hong-pastel
+{
+  const seen = {};
+  PRODUCTS.forEach(p => {
+    const base = p.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    seen[base] = (seen[base] || 0) + 1;
+    p.slug = seen[base] > 1 ? `${base}-${seen[base]}` : base;
+  });
+}
+
+const ALL = { id: 'all', name: 'Tất cả', color: '#8DBDE3' };
+const catById = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const money = n => n.toLocaleString('vi-VN') + 'đ';
+
+const ICONS = {
+  phone:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>',
+  facebook: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.3-1.5 1.6-1.5h1.7V4.6c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.5-4 4.1v2.3H7.6V14h2.8v8z"/></svg>',
+  tiktok:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.6 5.8a4.3 4.3 0 0 1-1.1-2.8h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 1 0 4.9 5.7V9.1a7.3 7.3 0 0 0 4.3 1.4V7.4a4.3 4.3 0 0 1-3.2-1.6z"/></svg>',
+  chat:     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.9 3 3 6.7 3 11.4c0 2.6 1.2 4.9 3.2 6.4V21l3-1.7c.9.2 1.8.4 2.8.4 5.1 0 9-3.7 9-8.3S17.1 3 12 3zm1 11.1-2.3-2.4-4.4 2.4 4.9-5.2 2.3 2.4 4.4-2.4z"/></svg>'
+};
+
+/* Hình minh hoạ cho khung ảnh tạm, mỗi dòng sản phẩm một hình */
+const SHAPES = {
+  bo:      '<circle cx="22" cy="20" r="8"/><circle cx="42" cy="20" r="8"/><circle cx="32" cy="14" r="8"/><path d="M19 31l13 27 13-27M25 44h14"/>',
+  hop:     '<circle cx="21" cy="22" r="7"/><circle cx="43" cy="22" r="7"/><circle cx="32" cy="17" r="7"/><rect x="13" y="32" width="38" height="24" rx="3"/><path d="M13 40h38"/>',
+  gio:     '<path d="M17 36C17 8 47 8 47 36"/><circle cx="24" cy="30" r="6"/><circle cx="40" cy="30" r="6"/><circle cx="32" cy="26" r="6"/><path d="M13 36h38l-5 20H18z"/>',
+  longden: '<circle cx="32" cy="7" r="4"/><path d="M22 17l10-6 10 6"/><rect x="20" y="17" width="24" height="36" rx="3"/><path d="M17 57h30"/><circle cx="32" cy="38" r="7"/><circle cx="26" cy="29" r="4"/><circle cx="38" cy="29" r="4"/>'
+};
+const SHOT_LABELS = ['Ảnh 1 · Toàn cảnh', 'Ảnh 2 · Cận cảnh', 'Ảnh 3 · Đặt trong không gian'];
+
+function placeholder(product, mix, label) {
+  return `<span class="ph" style="--mix:${mix}%"><svg viewBox="0 0 64 64" aria-hidden="true">${SHAPES[product.category]}</svg>${label ? `<span class="ph-label">${label}</span>` : ''}</span>`;
+}
+
+/* ---------- Tab + lưới ---------- */
+const tabsEl = $('.tabs');
+const gridEl = $('.grid');
+const hintEl = $('.catalog-hint');
+let activeCat = 'all';
+
+function renderTabs() {
+  tabsEl.innerHTML = [ALL, ...CATEGORIES].map(c =>
+    `<button class="tab" role="tab" type="button" data-cat="${c.id}" aria-controls="catalog" aria-selected="${c.id === activeCat}" style="--c:${c.color}">${esc(c.name)}</button>`
+  ).join('');
+}
+
+function renderGrid() {
+  const list = activeCat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCat);
+  hintEl.textContent = list.length
+    ? `${list.length} mẫu · Chạm vào mẫu để xem ảnh và kích thước`
+    : 'Dòng này chưa có mẫu. Bạn nhắn shop để xem các mẫu mới nhất nhé.';
+  gridEl.innerHTML = list.map((p, i) => {
+    const photo = p.images && p.images.length
+      ? `<img src="${esc(p.images[0])}" alt="" loading="lazy">`
+      : placeholder(p, 36);
+    return `<li style="animation-delay:${Math.min(i, 8) * 30}ms">
+      <button class="card" type="button" data-slug="${p.slug}" style="--c:${catById[p.category].color}">
+        <span class="card-photo">${photo}</span>
+        <span class="card-name">${esc(p.name)}</span>
+        <span class="card-price">${money(p.price)}</span>
+      </button>
+    </li>`;
+  }).join('');
+}
+
+tabsEl.addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab || tab.dataset.cat === activeCat) return;
+  activeCat = tab.dataset.cat;
+  tabsEl.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t === tab));
+  tabsEl.scrollTo({ left: tab.offsetLeft - (tabsEl.clientWidth - tab.offsetWidth) / 2, behavior: 'smooth' });
+  renderGrid();
+  // Nếu đang cuộn sâu trong danh sách thì đưa về đầu lưới để thấy mẫu đầu tiên
+  const barHeight = $('.tabs-wrap').offsetHeight;
+  const gridTop = $('.catalog').getBoundingClientRect().top;
+  if (gridTop < barHeight) window.scrollTo({ top: window.scrollY + gridTop - barHeight, behavior: 'smooth' });
+});
+
+gridEl.addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (card) openSheet(card.dataset.slug);
+});
+
+/* ---------- Thanh liên hệ ---------- */
+function contactButton(kind, label, cls = '') {
+  const href = kind === 'phone' ? (SHOP.phone && 'tel:' + SHOP.phone) : SHOP[kind];
+  if (!href) return `<button class="contact-btn ${cls}" type="button" data-missing="${label}">${ICONS[kind]}${label}</button>`;
+  const ext = kind === 'phone' ? '' : ' target="_blank" rel="noopener"';
+  return `<a class="contact-btn ${cls}" href="${esc(href)}"${ext}>${ICONS[kind]}${label}</a>`;
+}
+
+$('.contact-bar').innerHTML =
+  contactButton('phone', 'Gọi điện', 'is-main') +
+  contactButton('facebook', 'Facebook') +
+  contactButton('tiktok', 'TikTok');
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-missing]');
+  if (btn) toast(`Shop chưa cập nhật ${btn.dataset.missing === 'Gọi điện' ? 'số điện thoại' : btn.dataset.missing}`);
+});
+
+/* ---------- Bảng chi tiết ---------- */
+const sheet = $('.sheet');
+const sheetView = $('.sheet-view');
+const sheetActions = $('.sheet-actions');
+let closeTimer = null;
+
+function renderSheet(p) {
+  const cat = catById[p.category];
+  const hasPhotos = p.images && p.images.length;
+  const slides = hasPhotos
+    ? p.images.map((src, i) => `<div class="slide"><img src="${esc(src)}" alt="${esc(p.name)}, ảnh ${i + 1}" loading="lazy"></div>`)
+    : SHOT_LABELS.map((label, i) => `<div class="slide">${placeholder(p, [36, 24, 48][i], label)}</div>`);
+  const specs = [['Kích thước', p.size], ['Màu sắc', p.colors], ['Chất liệu', p.material]].filter(s => s[1]);
+
+  sheet.style.setProperty('--c', cat.color);
+  sheetView.innerHTML = `
+    <div>
+      <div class="gallery" tabindex="0" aria-label="Ảnh sản phẩm, vuốt ngang để xem thêm">${slides.join('')}</div>
+      ${slides.length > 1 ? `<div class="dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}
+    </div>
+    <div class="info">
+      <span class="info-cat">${esc(cat.name)}</span>
+      <h2 id="sheet-title">${esc(p.name)}</h2>
+      <p class="info-price">${money(p.price)}</p>
+      <dl class="specs">${specs.map(s => `<div><dt>${s[0]}</dt><dd>${esc(s[1])}</dd></div>`).join('')}</dl>
+      ${p.note ? `<p class="info-note">${esc(p.note)}</p>` : ''}
+    </div>`;
+
+  const ask = encodeURIComponent(`Mình muốn hỏi mẫu ${p.name}`);
+  sheetActions.innerHTML =
+    `<a class="contact-btn is-main" href="${esc(SHOP.messenger)}?text=${ask}" target="_blank" rel="noopener">${ICONS.chat}Nhắn shop về mẫu này</a>` +
+    contactButton('phone', 'Gọi');
+
+  const gallery = $('.gallery', sheetView);
+  const dots = sheetView.querySelectorAll('.dots i');
+  gallery.addEventListener('scroll', () => {
+    const items = [...gallery.children];
+    const x = gallery.scrollLeft + items[0].offsetLeft;
+    let nearest = 0;
+    items.forEach((el, i) => { if (Math.abs(el.offsetLeft - x) < Math.abs(items[nearest].offsetLeft - x)) nearest = i; });
+    if (gallery.scrollLeft + gallery.clientWidth >= gallery.scrollWidth - 2) nearest = items.length - 1;
+    dots.forEach((d, i) => d.classList.toggle('on', i === nearest));
+  }, { passive: true });
+}
+
+function showSheet(p) {
+  clearTimeout(closeTimer);
+  renderSheet(p);
+  $('.sheet-body').scrollTop = 0;
+  if (!sheet.open) sheet.showModal();
+  document.documentElement.classList.add('sheet-open');
+  requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('is-open')));
+}
+
+function hideSheet() {
+  if (!sheet.open) return;
+  sheet.classList.remove('is-open');
+  document.documentElement.classList.remove('sheet-open');
+  clearTimeout(closeTimer);
+  closeTimer = setTimeout(() => sheet.close(), 340);
+}
+
+// Mỗi mẫu có đường dẫn riêng: nút Back của điện thoại đóng bảng, và shop gửi thẳng link một mẫu được
+const bySlug = slug => PRODUCTS.find(x => x.slug === slug);
+
+function openSheet(slug) {
+  const p = bySlug(slug);
+  if (!p) return;
+  showSheet(p);
+  try { history.pushState({ sheet: slug }, '', '#' + slug); } catch (err) { /* mở từ file:// trên vài trình duyệt */ }
+}
+
+function requestClose() {
+  if (history.state && history.state.sheet) history.back();
+  else {
+    hideSheet();
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (err) {}
+  }
+}
+
+window.addEventListener('popstate', () => {
+  const p = bySlug(location.hash.slice(1));
+  if (p) showSheet(p); else hideSheet();
+});
+
+$('.sheet-close').addEventListener('click', requestClose);
+sheet.addEventListener('cancel', e => { e.preventDefault(); requestClose(); });
+sheet.addEventListener('click', e => { if (e.target === sheet) requestClose(); });
+
+// Kéo thanh nắm xuống để đóng
+const grab = $('.sheet-grab');
+let dragStart = null, dragBy = 0;
+grab.addEventListener('touchstart', e => { dragStart = e.touches[0].clientY; dragBy = 0; sheet.style.transition = 'none'; }, { passive: true });
+grab.addEventListener('touchmove', e => {
+  if (dragStart === null) return;
+  dragBy = Math.max(0, e.touches[0].clientY - dragStart);
+  sheet.style.transform = `translateY(${dragBy}px)`;
+}, { passive: true });
+grab.addEventListener('touchend', () => {
+  sheet.style.transition = '';
+  sheet.style.transform = '';
+  if (dragBy > 90) requestClose();
+  dragStart = null;
+});
+
+/* ---------- Tiện ích ---------- */
+const toastEl = $('.toast');
+let toastTimer = null;
+function toast(msg) {
+  // Bảng chi tiết nằm ở lớp trên cùng, nên thông báo phải nằm trong bảng mới nhìn thấy
+  (sheet.open ? sheet : document.body).appendChild(toastEl);
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+/* ---------- Khởi động ---------- */
+renderTabs();
+renderGrid();
+$('.demo-note').hidden = !SHOP.demo;
+{
+  const first = bySlug(location.hash.slice(1));
+  if (first) showSheet(first);
+}
+</script>
+</body>
+</html>
