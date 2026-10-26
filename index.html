@@ -213,6 +213,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 22px 12px;
+    align-items: start;
   }
   .card {
     display: block;
@@ -226,13 +227,14 @@
   .card-photo {
     display: block;
     position: relative;
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 3 / 4;
     border-radius: 18px;
     overflow: hidden;
     background: color-mix(in srgb, var(--c) 34%, #fff);
     transition: transform .2s ease;
   }
   .card:active .card-photo { transform: scale(.97); }
+  /* Mọi ảnh sản phẩm đều được chuẩn bị sẵn ở khung dọc 3:4 (720 x 960) */
   .card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .card-name {
     display: -webkit-box;
@@ -398,13 +400,14 @@
     position: relative;
     flex: none;
     width: 82%;
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 3 / 4;
     border-radius: 20px;
     overflow: hidden;
     scroll-snap-align: start;
     background: var(--sky-pale);
   }
-  .slide:only-child { width: 100%; }
+  .gallery:has(.slide:only-child) { justify-content: center; }
+  .slide:only-child { width: min(100%, 420px); }
   .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .dots {
     display: flex;
@@ -623,7 +626,7 @@ const SHOP = {
   messenger: 'https://m.me/BichNgocFlorist',
   tiktok:    '',   // ví dụ: 'https://www.tiktok.com/@tenkenh'
   phone:     '',   // ví dụ: '0912345678'
-  demo:      true  // đổi thành false khi đã nhập dữ liệu thật
+  demo:      false // true: hiện dòng ghi chú "bản xem thử" ở cuối trang
 };
 
 const CATEGORIES = [
@@ -633,27 +636,93 @@ const CATEGORIES = [
   { id: 'longden', name: 'Hoa lồng đèn', color: '#A990E2' }
 ];
 
-/* Mỗi sản phẩm một dòng. images: 2–4 ảnh tỉ lệ 4:5, ảnh đầu tiên là ảnh hiện ngoài danh sách.
-   Để images trống thì trang tự hiện khung màu tạm. Muốn ẩn một mẫu: xoá dòng đó. */
+/* Mỗi sản phẩm một dòng, xếp theo dòng sản phẩm. images: 1–4 ảnh, ảnh đầu tiên là ảnh hiện ngoài danh sách.
+   Có thể thêm: name (tên mẫu), price (giá, ví dụ 350000), size, colors, material, note.
+   Chưa có name thì trang tự đặt "Hoa bó 01"...; chưa có price thì hiện "Liên hệ báo giá". Muốn ẩn một mẫu: xoá dòng đó. */
 const PRODUCTS = [
-  { category: 'bo', name: 'Bó hồng pastel', price: 350000, size: 'Cao 45cm, ngang 30cm', colors: 'Hồng pastel, kem', material: 'Hoa lụa', images: [] },
-  { category: 'bo', name: 'Bó cúc họa mi nắng sớm', price: 280000, size: 'Cao 40cm, ngang 25cm', colors: 'Trắng, vàng', material: 'Hoa lụa', images: [] },
-  { category: 'bo', name: 'Bó hồng sáp đỏ 20 bông', price: 420000, size: 'Cao 50cm, ngang 35cm', colors: 'Đỏ', material: 'Hoa sáp', images: [] },
+{ category: 'bo', images: ['images/bo/bo-01-1.jpg', 'images/bo/bo-01-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-02-1.jpg', 'images/bo/bo-02-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-03-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-04-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-05-1.jpg', 'images/bo/bo-05-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-06-1.jpg', 'images/bo/bo-06-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-07-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-08-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-09-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-10-1.jpg', 'images/bo/bo-10-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-11-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-12-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-13-1.jpg', 'images/bo/bo-13-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-14-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-15-1.jpg', 'images/bo/bo-15-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-16-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-17-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-18-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-19-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-20-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-21-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-22-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-23-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-24-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-25-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-26-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-27-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-28-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-29-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-30-1.jpg', 'images/bo/bo-30-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-31-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-32-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-33-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-34-1.jpg', 'images/bo/bo-34-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-35-1.jpg', 'images/bo/bo-35-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-36-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-37-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-38-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-39-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-40-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-41-1.jpg', 'images/bo/bo-41-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-42-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-43-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-44-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-45-1.jpg', 'images/bo/bo-45-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-46-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-47-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-48-1.jpg', 'images/bo/bo-48-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-49-1.jpg', 'images/bo/bo-49-2.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-50-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-51-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-52-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-53-1.jpg'] },
+  { category: 'bo', images: ['images/bo/bo-54-1.jpg'] },
 
-  { category: 'hop', name: 'Hộp hồng sáp trái tim', price: 390000, size: 'Hộp 22 × 22 × 12cm', colors: 'Đỏ, hồng', material: 'Hoa sáp', images: [] },
-  { category: 'hop', name: 'Hộp mẫu đơn kem', price: 520000, size: 'Hộp tròn 25cm, cao 18cm', colors: 'Kem, hồng phấn', material: 'Hoa lụa', images: [] },
-  { category: 'hop', name: 'Hộp hoa mix cam vàng', price: 450000, size: 'Hộp 20 × 20 × 15cm', colors: 'Cam, vàng', material: 'Hoa lụa', images: [] },
+  { category: 'hop', images: ['images/hop/hop-01-1.jpg', 'images/hop/hop-01-2.jpg'] },
+  { category: 'hop', images: ['images/hop/hop-02-1.jpg', 'images/hop/hop-02-2.jpg'] },
+  { category: 'hop', images: ['images/hop/hop-03-1.jpg'] },
 
-  { category: 'gio', name: 'Giỏ hướng dương mini', price: 320000, size: 'Cao 35cm, ngang 25cm', colors: 'Vàng', material: 'Hoa lụa', images: [] },
-  { category: 'gio', name: 'Giỏ hồng lụa đồng quê', price: 480000, size: 'Cao 45cm, ngang 35cm', colors: 'Hồng, trắng, xanh lá', material: 'Hoa lụa', images: [] },
-  { category: 'gio', name: 'Giỏ baby tím', price: 360000, size: 'Cao 38cm, ngang 28cm', colors: 'Tím nhạt, trắng', material: 'Hoa lụa', images: [] },
+  { category: 'gio', images: ['images/gio/gio-01-1.jpg', 'images/gio/gio-01-2.jpg'] },
+  { category: 'gio', images: ['images/gio/gio-02-1.jpg', 'images/gio/gio-02-2.jpg'] },
 
-  { category: 'longden', name: 'Lồng đèn hồng sáp trắng', price: 550000, size: 'Lồng đèn cao 40cm', colors: 'Trắng, kem', material: 'Hoa sáp', images: [] },
-  { category: 'longden', name: 'Lồng đèn mẫu đơn hồng', price: 620000, size: 'Lồng đèn cao 45cm', colors: 'Hồng', material: 'Hoa lụa', images: [] },
-  { category: 'longden', name: 'Lồng đèn hoa mix pastel', price: 590000, size: 'Lồng đèn cao 40cm', colors: 'Hồng, vàng, tím nhạt', material: 'Hoa lụa', images: [] }
+  { category: 'longden', images: ['images/longden/longden-01-1.jpg'] },
+  { category: 'longden', images: ['images/longden/longden-02-1.jpg'] },
+  { category: 'longden', images: ['images/longden/longden-03-1.jpg'] },
+  { category: 'longden', images: ['images/longden/longden-04-1.jpg', 'images/longden/longden-04-2.jpg'] },
+  { category: 'longden', images: ['images/longden/longden-05-1.jpg'] },
+  { category: 'longden', images: ['images/longden/longden-06-1.jpg'] },
+  { category: 'longden', images: ['images/longden/longden-07-1.jpg', 'images/longden/longden-07-2.jpg'] },
+  { category: 'longden', images: ['images/longden/longden-08-1.jpg'] },
+  { category: 'longden', images: ['images/longden/longden-09-1.jpg'] }
 ];
 
 /* ===================== HẾT PHẦN DỮ LIỆU ===================== */
+
+// Mẫu chưa có tên thì đặt theo dòng sản phẩm và số thứ tự, ví dụ "Hoa bó 01"
+{
+  const count = {};
+  PRODUCTS.forEach(p => {
+    count[p.category] = (count[p.category] || 0) + 1;
+    if (!p.name) p.name = `${CATEGORIES.find(c => c.id === p.category).name} ${String(count[p.category]).padStart(2, '0')}`;
+  });
+}
 
 // Đường dẫn riêng của mỗi mẫu được tạo từ tên, ví dụ "Bó hồng pastel" -> #bo-hong-pastel
 {
@@ -671,6 +740,7 @@ const catById = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const money = n => n.toLocaleString('vi-VN') + 'đ';
+const priceText = p => (p.price ? money(p.price) : "Liên hệ báo giá");
 
 const ICONS = {
   phone:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>',
@@ -707,7 +777,7 @@ function renderTabs() {
 function renderGrid() {
   const list = activeCat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCat);
   hintEl.textContent = list.length
-    ? `${list.length} mẫu · Chạm vào mẫu để xem ảnh và kích thước`
+    ? `${list.length} mẫu · Chạm vào mẫu để xem thêm ảnh`
     : 'Dòng này chưa có mẫu. Bạn nhắn shop để xem các mẫu mới nhất nhé.';
   gridEl.innerHTML = list.map((p, i) => {
     const photo = p.images && p.images.length
@@ -717,7 +787,7 @@ function renderGrid() {
       <button class="card" type="button" data-slug="${p.slug}" style="--c:${catById[p.category].color}">
         <span class="card-photo">${photo}</span>
         <span class="card-name">${esc(p.name)}</span>
-        <span class="card-price">${money(p.price)}</span>
+        <span class="card-price">${priceText(p)}</span>
       </button>
     </li>`;
   }).join('');
@@ -769,7 +839,7 @@ function renderSheet(p) {
   const cat = catById[p.category];
   const hasPhotos = p.images && p.images.length;
   const slides = hasPhotos
-    ? p.images.map((src, i) => `<div class="slide"><img src="${esc(src)}" alt="${esc(p.name)}, ảnh ${i + 1}" loading="lazy"></div>`)
+    ? p.images.map((src, i) => `<div class="slide"><img src="${esc(src)}" alt="${esc(p.name)}, ảnh ${i + 1}"></div>`)
     : SHOT_LABELS.map((label, i) => `<div class="slide">${placeholder(p, [36, 24, 48][i], label)}</div>`);
   const specs = [['Kích thước', p.size], ['Màu sắc', p.colors], ['Chất liệu', p.material]].filter(s => s[1]);
 
@@ -782,8 +852,8 @@ function renderSheet(p) {
     <div class="info">
       <span class="info-cat">${esc(cat.name)}</span>
       <h2 id="sheet-title">${esc(p.name)}</h2>
-      <p class="info-price">${money(p.price)}</p>
-      <dl class="specs">${specs.map(s => `<div><dt>${s[0]}</dt><dd>${esc(s[1])}</dd></div>`).join('')}</dl>
+      <p class="info-price">${priceText(p)}</p>
+      ${specs.length ? `<dl class="specs">${specs.map(s => `<div><dt>${s[0]}</dt><dd>${esc(s[1])}</dd></div>`).join('')}</dl>` : ''}
       ${p.note ? `<p class="info-note">${esc(p.note)}</p>` : ''}
     </div>`;
 

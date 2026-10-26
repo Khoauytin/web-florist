@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup giao diện quản lý Bích Ngọc Florist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<style>
+/* ===== Tokens ===== */
+:root {
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Neutrals, tinted toward the brand navy (hue 255) */
+  --bg: oklch(0.965 0.007 255);
+  --surface: oklch(0.99 0.004 255);
+  --sunken: oklch(0.945 0.01 255);
+  --line: oklch(0.905 0.011 255);
+  --line-strong: oklch(0.80 0.02 255);
+  --text: oklch(0.26 0.045 255);
+  --text-muted: oklch(0.49 0.035 255);
+
+  /* Action */
+  --primary: oklch(0.50 0.13 252);
+  --primary-hover: oklch(0.44 0.13 252);
+  --primary-soft: oklch(0.945 0.03 250);
+  --on-primary: oklch(0.99 0.004 255);
+  --focus: oklch(0.62 0.15 252);
+  --danger: oklch(0.50 0.17 20);
+  --danger-soft: oklch(0.955 0.03 20);
+
+  /* Order status pairs: fg / bg */
+  --st-new-fg: oklch(0.42 0.06 255);        --st-new-bg: oklch(0.935 0.015 255);
+  --st-confirmed-fg: oklch(0.42 0.13 252);  --st-confirmed-bg: oklch(0.94 0.035 250);
+  --st-delivering-fg: oklch(0.44 0.11 65);  --st-delivering-bg: oklch(0.945 0.06 80);
+  --st-done-fg: oklch(0.38 0.09 155);       --st-done-bg: oklch(0.94 0.04 155);
+  --st-cancel-fg: oklch(0.44 0.07 255);     --st-cancel-bg: oklch(0.925 0.012 255);
+  --st-failed-fg: oklch(0.42 0.16 28);      --st-failed-bg: oklch(0.945 0.045 28);
+
+  /* Allocation bar */
+  --stock: oklch(0.55 0.12 252);
+  --made: oklch(0.60 0.12 155);
+  --todo: oklch(0.88 0.09 78);
+  --todo-line: oklch(0.58 0.13 65);
+
+  /* Scale */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+  --r: 8px;
+  --nav-h: 64px;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 400 1rem/1.55 var(--font);
+  font-variant-numeric: tabular-nums;
+  min-height: 100dvh;
+}
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 1.5rem; line-height: 1.2; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 1rem; line-height: 1.3; font-weight: 600; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.muted { color: var(--text-muted); }
+.small { font-size: 0.875rem; line-height: 1.45; }
+.num { font-variant-numeric: tabular-nums; }
+.right { text-align: right; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.skip { position: absolute; left: var(--s4); top: -64px; background: var(--primary); color: var(--on-primary); padding: var(--s3) var(--s4); border-radius: var(--r); z-index: 100; }
+.skip:focus { top: var(--s2); }
+
+/* ===== Shell ===== */
+.app { min-height: 100dvh; }
+.main { padding: var(--s4) var(--s4) calc(var(--nav-h) + var(--s8) + env(safe-area-inset-bottom, 0px)); max-width: 1120px; margin: 0 auto; }
+.sidebar { display: none; }
+.bottomnav {
+  position: fixed; inset: auto 0 0 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--surface); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(5, 1fr); z-index: 20;
+}
+.bottomnav a, .bottomnav button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 48px; background: none; border: 0; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; cursor: pointer; text-decoration: none;
+  position: relative;
+}
+.bottomnav [aria-current="page"] { color: var(--primary); font-weight: 600; }
+.bottomnav [aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; background: var(--primary); border-radius: 0 0 var(--r) var(--r); }
+.bottomnav .badge-dot { position: absolute; top: 6px; left: calc(50% + 8px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r); background: var(--danger); color: var(--on-primary); font-size: 0.75rem; line-height: 18px; text-align: center; font-weight: 600; }
+
+.pagehead { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s4); flex-wrap: wrap; }
+.pagehead .sub { color: var(--text-muted); font-size: 0.875rem; margin-top: var(--s1); }
+.back { display: inline-flex; align-items: center; gap: var(--s1); min-height: 44px; color: var(--text-muted); font-size: 0.875rem; margin-left: calc(-1 * var(--s2)); padding: 0 var(--s2); border-radius: var(--r); }
+.back:hover { color: var(--text); text-decoration: none; background: var(--sunken); }
+
+@media (min-width: 1024px) {
+  .app { display: grid; grid-template-columns: 248px 1fr; }
+  .bottomnav { display: none; }
+  .main { padding: var(--s6) var(--s6) var(--s8); width: 100%; }
+  .sidebar {
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100dvh;
+    background: var(--surface); border-right: 1px solid var(--line); padding: var(--s5) var(--s3);
+  }
+  .brand { padding: 0 var(--s3) var(--s5); }
+  .brand b { display: block; font-size: 1.125rem; font-weight: 700; color: var(--text); letter-spacing: 0; }
+  .brand span { font-size: 0.875rem; color: var(--text-muted); }
+  .sidebar nav { display: flex; flex-direction: column; gap: var(--s6); }
+  .navgroup { display: flex; flex-direction: column; gap: 2px; }
+  .navgroup > .navtitle { padding: 0 var(--s3) var(--s2); font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+  .sidebar a.navlink { display: flex; align-items: center; gap: var(--s3); min-height: 44px; padding: 0 var(--s3); border-radius: var(--r); color: var(--text); font-weight: 500; text-decoration: none; transition: background-color 150ms var(--ease); }
+  .sidebar a.navlink:hover { background: var(--sunken); }
+  .sidebar a.navlink[aria-current="page"] { background: var(--primary-soft); color: var(--primary-hover); font-weight: 600; }
+  .sidebar .navlink .count { margin-left: auto; font-size: 0.875rem; font-weight: 600; color: var(--danger); }
+  .userbox { margin-top: auto; padding: var(--s3); border-top: 1px solid var(--line); }
+  .userbox .who { font-weight: 600; }
+  .userbox .role { font-size: 0.875rem; color: var(--text-muted); }
+}
+
+/* ===== Controls ===== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+  min-height: 44px; padding: 0 var(--s4); border-radius: var(--r); border: 1px solid transparent;
+  font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background-color 150ms var(--ease), border-color 150ms var(--ease), transform 100ms var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+.btn:hover { text-decoration: none; }
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: var(--surface); color: var(--text); border-color: var(--line-strong); }
+.btn-secondary:hover { background: var(--sunken); }
+.btn-ghost { background: none; color: var(--primary); }
+.btn-ghost:hover { background: var(--primary-soft); }
+.btn-danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
+.btn-danger:hover { background: var(--danger-soft); }
+.btn[disabled] { background: var(--sunken); color: var(--text-muted); border-color: var(--line); cursor: not-allowed; transform: none; }
+.btn-block { width: 100%; }
+
+.field { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.field label, .label { font-size: 0.875rem; font-weight: 500; }
+.field .hint { font-size: 0.875rem; color: var(--text-muted); }
+.input, .select, .textarea {
+  width: 100%; min-height: 44px; padding: 0 var(--s3); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--r); font-size: 1rem;
+}
+.textarea { padding: var(--s3); min-height: 88px; resize: vertical; line-height: 1.5; }
+.input:hover, .select:hover, .textarea:hover { border-color: var(--text-muted); }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible { outline-offset: 0; border-color: var(--focus); }
+.input-wrap { position: relative; }
+.input-wrap .icon { position: absolute; left: var(--s3); top: 12px; color: var(--text-muted); pointer-events: none; }
+.input-wrap .input { padding-left: 44px; }
+.input-wrap .toggle { position: absolute; right: 4px; top: 0; min-height: 44px; padding: 0 var(--s3); background: none; border: 0; color: var(--primary); font-weight: 600; cursor: pointer; }
+.row2 { display: grid; gap: var(--s4); grid-template-columns: 1fr; }
+@media (min-width: 640px) { .row2 { grid-template-columns: 1fr 1fr; } }
+
+.chips { display: flex; gap: var(--s2); overflow-x: auto; padding: 2px 2px var(--s2); margin: 0 calc(-1 * var(--s4)); padding-inline: var(--s4); scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+@media (min-width: 1024px) { .chips { margin: 0; padding-inline: 2px; flex-wrap: wrap; overflow: visible; } }
+.chip {
+  flex: none; min-height: 44px; padding: 0 var(--s4); display: inline-flex; align-items: center; gap: var(--s2);
+  border-radius: var(--r); border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font-weight: 500; cursor: pointer;
+  transition: background-color 150ms var(--ease), border-color 150ms var(--ease);
+}
+.chip:hover { background: var(--sunken); }
+.chip[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-hover); font-weight: 600; }
+.chip .n { font-size: 0.875rem; color: var(--text-muted); }
+.chip[aria-pressed="true"] .n { color: var(--primary-hover); }
+
+.badge { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: var(--r); font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
+.st-new { color: var(--st-new-fg); background: var(--st-new-bg); }
+.st-confirmed { color: var(--st-confirmed-fg); background: var(--st-confirmed-bg); }
+.st-delivering { color: var(--st-delivering-fg); background: var(--st-delivering-bg); }
+.st-done { color: var(--st-done-fg); background: var(--st-done-bg); }
+.st-cancel { color: var(--st-cancel-fg); background: var(--st-cancel-bg); }
+.st-failed { color: var(--st-failed-fg); background: var(--st-failed-bg); }
+.tag { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: var(--r); background: var(--sunken); color: var(--text-muted); font-size: 0.875rem; font-weight: 500; }
+
+/* ===== Layout blocks ===== */
+.section { margin-top: var(--s6); }
+.section > .head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s3); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.panel > .pad { padding: var(--s4); }
+.divide > * + * { border-top: 1px solid var(--line); }
+
+.stats { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.stats > div { padding: var(--s4); border-bottom: 1px solid var(--line); min-width: 0; }
+.stats > div:nth-child(odd) { border-right: 1px solid var(--line); }
+.stats > div:nth-last-child(-n+2) { border-bottom: 0; }
+.stats .v { font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
+.stats .l { font-size: 0.875rem; color: var(--text-muted); }
+@media (min-width: 1024px) {
+  .stats { grid-template-columns: repeat(4, 1fr); }
+  .stats > div { border-bottom: 0; border-right: 1px solid var(--line); }
+  .stats > div:last-child { border-right: 0; }
+  .stats > div:nth-child(odd) { border-right: 1px solid var(--line); }
+}
+
+/* Order rows: stacked on phones, columns on desktop */
+.olist { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; container-type: inline-size; }
+.ohead { display: none; }
+.orow {
+  display: grid; gap: var(--s1) var(--s3); padding: var(--s4); color: inherit; text-decoration: none;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "code status" "who who" "prod pay" "total total";
+  border-top: 1px solid var(--line); transition: background-color 150ms var(--ease);
+}
+.orow:first-child { border-top: 0; }
+.orow:hover { background: var(--sunken); text-decoration: none; }
+.orow .c-code { grid-area: code; font-weight: 600; }
+.orow .c-status { grid-area: status; justify-self: end; }
+.orow .c-who { grid-area: who; }
+.orow .c-prod { grid-area: prod; font-size: 0.875rem; color: var(--text-muted); }
+.orow .c-pay { grid-area: pay; font-size: 0.875rem; color: var(--text-muted); justify-self: end; text-align: right; }
+.orow .c-total { grid-area: total; font-weight: 600; }
+.orow .c-total .pill-label { font-weight: 400; color: var(--text-muted); font-size: 0.875rem; }
+@container (min-width: 880px) {
+  .ohead, .orow { grid-template-columns: 148px minmax(0, 1fr) 150px 150px 170px 120px; align-items: center; gap: var(--s4); }
+  .ohead { display: grid; padding: var(--s3) var(--s4); background: var(--sunken); border-bottom: 1px solid var(--line); font-size: 0.875rem; font-weight: 600; color: var(--text-muted); }
+  .orow { grid-template-areas: "code who status prod pay total"; }
+  .orow .c-status { justify-self: start; }
+  .orow .c-pay { justify-self: start; text-align: left; }
+  .orow .c-total { text-align: right; }
+}
+
+.mini { display: inline-flex; align-items: center; gap: var(--s2); }
+.mini .bar { width: 56px; height: 6px; background: var(--sunken); border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
+.mini .bar i { display: block; height: 100%; background: var(--made); }
+
+/* Stepper (order progress) */
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); list-style: none; margin: 0; padding: 0; }
+.steps li { display: flex; flex-direction: column; gap: var(--s2); font-size: 0.875rem; color: var(--text-muted); }
+.steps li::before { content: ""; height: 4px; border-radius: 2px; background: var(--line-strong); }
+.steps li.done::before { background: var(--primary); }
+.steps li.now { color: var(--primary-hover); font-weight: 600; }
+.steps li.now::before { background: var(--primary); }
+.steps li.done { color: var(--text); }
+.steps li.skip::before { background: var(--line); }
+
+/* Allocation bar: the signature element */
+.alloc { display: flex; height: 12px; border-radius: var(--r); overflow: hidden; background: var(--surface); border: 1px solid var(--line-strong); }
+.alloc i { display: block; height: 100%; transition: flex-grow 250ms var(--ease); }
+.alloc .a-stock { background: var(--stock); }
+.alloc .a-made { background: var(--made); }
+.alloc .a-todo { background: var(--todo); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); margin-top: var(--s2); font-size: 0.875rem; color: var(--text-muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); border: 1px solid var(--cl, transparent); }
+.lg-stock { --c: var(--stock); } .lg-made { --c: var(--made); } .lg-todo { --c: var(--todo); --cl: var(--todo-line); }
+.legend b { color: var(--text); font-weight: 600; }
+
+.line { display: grid; gap: var(--s3); padding: var(--s4); grid-template-columns: 64px 1fr; }
+.line .thumb { width: 64px; height: 64px; border-radius: var(--r); object-fit: cover; background: var(--sunken); }
+.line .thumb.free { display: grid; place-items: center; color: var(--text-muted); border: 1px dashed var(--line-strong); background: var(--surface); font-size: 0.75rem; text-align: center; padding: 4px; }
+.line .top { display: flex; justify-content: space-between; gap: var(--s3); }
+.line .nm { font-weight: 600; }
+.line .meta { font-size: 0.875rem; color: var(--text-muted); }
+.line .work { grid-column: 1 / -1; }
+@media (min-width: 640px) { .line .work { grid-column: 2; } }
+
+.qty { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--surface); }
+.qty button { width: 44px; height: 44px; background: none; border: 0; cursor: pointer; display: grid; place-items: center; color: var(--text); border-radius: var(--r); }
+.qty button:hover { background: var(--sunken); }
+.qty button[disabled] { color: var(--line-strong); cursor: not-allowed; background: none; }
+.qty output { min-width: 56px; text-align: center; font-weight: 600; }
+
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: var(--s2) var(--s4); padding: var(--s4); font-size: 1rem; }
+.kv dt { color: var(--text-muted); font-size: 0.875rem; padding-top: 2px; }
+.kv dd { margin: 0; }
+.twocol { display: grid; gap: var(--s5); }
+@media (min-width: 1024px) { .twocol { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; } .twocol > aside { position: sticky; top: var(--s6); } }
+
+.money { display: grid; gap: var(--s2); padding: var(--s4); }
+.money > div { display: flex; justify-content: space-between; gap: var(--s4); }
+.money .total { border-top: 1px solid var(--line); padding-top: var(--s3); margin-top: var(--s1); font-weight: 600; font-size: 1.125rem; }
+.money .owe { font-weight: 600; color: var(--danger); }
+.money .ok { font-weight: 600; color: var(--st-done-fg); }
+
+.timeline { list-style: none; margin: 0; padding: var(--s4); display: grid; gap: var(--s4); }
+.timeline li { display: grid; grid-template-columns: 8px 1fr; gap: var(--s3); font-size: 0.875rem; }
+.timeline li::before { content: ""; width: 8px; height: 8px; margin-top: 7px; border-radius: 2px; background: var(--line-strong); }
+.timeline .when { color: var(--text-muted); }
+
+.notice { display: flex; gap: var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r); background: var(--st-delivering-bg); color: var(--st-delivering-fg); font-size: 0.875rem; font-weight: 500; }
+.notice.info { background: var(--primary-soft); color: var(--primary-hover); }
+
+.actions { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.actions .why { font-size: 0.875rem; color: var(--text-muted); flex-basis: 100%; }
+
+/* Products */
+.pgrid { display: grid; gap: var(--s3); grid-template-columns: 1fr; }
+@media (min-width: 640px) { .pgrid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1024px) { .pgrid { grid-template-columns: repeat(3, 1fr); } }
+.pcard { display: grid; grid-template-columns: 96px 1fr; gap: var(--s3); padding: var(--s3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); color: inherit; text-decoration: none; transition: border-color 150ms var(--ease); }
+.pcard:hover { border-color: var(--line-strong); text-decoration: none; }
+.pcard img { width: 96px; height: 120px; object-fit: cover; border-radius: var(--r); background: var(--sunken); }
+.pcard .nm { font-weight: 600; line-height: 1.3; }
+.pcard .code { font-size: 0.875rem; color: var(--text-muted); }
+.pcard .price { font-weight: 600; margin-top: var(--s1); }
+.stocktrio { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: var(--s4); margin-top: var(--s2); font-size: 0.875rem; color: var(--text-muted); }
+.stocktrio b { display: block; font-size: 1rem; color: var(--text); }
+.stocktrio .avail b { color: var(--primary-hover); }
+.stocktrio .zero b { color: var(--danger); }
+
+.bigtrio { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.bigtrio > div { padding: var(--s4); }
+.bigtrio > div + div { border-left: 1px solid var(--line); }
+.bigtrio .v { font-size: 2rem; font-weight: 600; line-height: 1.1; }
+.bigtrio .l { font-size: 0.875rem; color: var(--text-muted); }
+.bigtrio .main .v { color: var(--primary-hover); }
+
+.pdetail { display: grid; gap: var(--s5); grid-template-columns: minmax(0, 1fr); }
+.pdetail > * { min-width: 0; }
+@media (min-width: 1024px) { .pdetail { grid-template-columns: 320px minmax(0, 1fr); align-items: start; } }
+.pdetail .photo { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--r); background: var(--sunken); }
+
+.tbl { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.tbl th { text-align: left; font-weight: 600; color: var(--text-muted); padding: var(--s3) var(--s4); background: var(--sunken); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl td { padding: var(--s3) var(--s4); border-top: 1px solid var(--line); vertical-align: top; }
+.tbl tr:first-child td { border-top: 0; }
+.tbl .r { text-align: right; }
+.scroll { overflow-x: auto; max-width: 100%; }
+
+/* Production groups */
+.group { margin-top: var(--s4); }
+.group .ghead { display: grid; grid-template-columns: 56px 1fr auto; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); background: var(--sunken); border-bottom: 1px solid var(--line); }
+.group .ghead img { width: 56px; height: 56px; border-radius: var(--r); object-fit: cover; }
+.group .ghead .left { font-weight: 600; font-size: 1.125rem; text-align: right; line-height: 1.1; }
+.group .ghead .left small { display: block; font-weight: 400; font-size: 0.875rem; color: var(--text-muted); }
+.prow { display: grid; gap: var(--s3); padding: var(--s4); border-top: 1px solid var(--line); }
+.prow:first-of-type { border-top: 0; }
+.prow .top { display: flex; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
+.prow .ctl { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+
+/* Sticky bar (order form) */
+.stickybar { position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); padding: var(--s3) var(--s4); display: flex; align-items: center; justify-content: space-between; gap: var(--s4); z-index: 15; }
+.stickybar .t { font-size: 0.875rem; color: var(--text-muted); }
+.stickybar .v { font-size: 1.25rem; font-weight: 600; line-height: 1.2; }
+@media (min-width: 1024px) { .stickybar { left: 248px; bottom: 0; padding-inline: var(--s6); } }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.seg button { min-height: 44px; padding: 0 var(--s4); background: none; border: 0; cursor: pointer; font-weight: 500; }
+.seg button + button { border-left: 1px solid var(--line-strong); }
+.seg button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary-hover); font-weight: 600; }
+.found { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s3) var(--s4); border: 1px solid var(--primary); background: var(--primary-soft); border-radius: var(--r); }
+
+/* Auth */
+.auth { min-height: 100dvh; display: grid; }
+.auth .form { padding: var(--s6) var(--s4); display: flex; flex-direction: column; justify-content: center; gap: var(--s5); max-width: 440px; width: 100%; margin: 0 auto; }
+.auth .photo { display: none; }
+@media (min-width: 1024px) {
+  .auth { grid-template-columns: minmax(480px, 5fr) 7fr; }
+  .auth .form { margin: 0; padding: var(--s7); max-width: none; }
+  .auth .form > * { max-width: 400px; }
+  .auth .photo { display: block; position: relative; background: var(--sunken); }
+  .auth .photo img { width: 100%; height: 100%; object-fit: cover; }
+}
+
+/* Mockup-only controls */
+.demo { margin: var(--s3); padding: var(--s3); border: 1px dashed var(--line-strong); border-radius: var(--r); font-size: 0.875rem; }
+.demo p { color: var(--text-muted); margin-bottom: var(--s2); }
+.demo-mobile { display: block; margin: 0 var(--s4) var(--s4); }
+@media (min-width: 1024px) { .demo-mobile { display: none; } }
+
+dialog.sheet { border: 0; padding: 0; width: 100%; max-width: 480px; margin: auto auto 0; border-radius: var(--r) var(--r) 0 0; background: var(--surface); color: var(--text); }
+dialog.sheet::backdrop { background: oklch(0.2 0.04 255 / 0.5); }
+@media (min-width: 640px) { dialog.sheet { margin: auto; border-radius: var(--r); } }
+.sheet .sh { display: flex; justify-content: space-between; align-items: center; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); }
+.sheet .sb { padding: var(--s2); padding-bottom: calc(var(--s2) + env(safe-area-inset-bottom, 0px)); display: grid; }
+.sheet .sb a { display: flex; align-items: center; gap: var(--s3); min-height: 48px; padding: 0 var(--s3); border-radius: var(--r); color: var(--text); font-weight: 500; text-decoration: none; }
+.sheet .sb a:hover { background: var(--sunken); }
+
+.toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 80px); transform: translate(-50%, 8px); background: var(--text); color: var(--surface); padding: var(--s3) var(--s4); border-radius: var(--r); font-size: 0.875rem; opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease), transform 200ms var(--ease); z-index: 50; max-width: calc(100% - 32px); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+body[data-role="staff"] [data-owner-only] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body data-role="owner">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-today" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-orders" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="i-make" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2L12 3z"/><path d="M12 10v5M12 18v.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></symbol>
+</svg>
+
+<a class="skip" href="#view">Bỏ qua điều hướng</a>
+<div id="root"></div>
+
+<dialog class="sheet" id="more-sheet" aria-labelledby="more-title">
+  <div class="sh"><h2 id="more-title">Thêm</h2><button class="btn btn-ghost" type="button" data-act="close-sheet" aria-label="Đóng"><svg class="icon"><use href="#i-x"/></svg></button></div>
+  <div class="sb" id="more-body"></div>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ===== Dữ liệu mẫu (chỉ để xem giao diện) ===== */
+const IMG = '../../images/';
+const PRODUCTS = {
+  'BO-001':  { name: 'Bó hoa sáp đỏ',          cat: 'Hoa bó',       img: 'bo/bo-01-1.jpg',      price: 350000, cost: 180000, mode: 'Linh hoạt',    onHand: 3, reserved: 3 },
+  'BO-002':  { name: 'Bó cẩm tú cầu xanh',     cat: 'Hoa bó',       img: 'bo/bo-02-1.jpg',      price: 420000, cost: 210000, mode: 'Linh hoạt',    onHand: 5, reserved: 1 },
+  'BO-005':  { name: 'Bó hồng pastel',         cat: 'Hoa bó',       img: 'bo/bo-05-1.jpg',      price: 480000, cost: 250000, mode: 'Linh hoạt',    onHand: 0, reserved: 0 },
+  'BO-010':  { name: 'Bó baby trắng',          cat: 'Hoa bó',       img: 'bo/bo-10-1.jpg',      price: 290000, cost: 140000, mode: 'Linh hoạt',    onHand: 8, reserved: 0 },
+  'HOP-001': { name: 'Hộp hoa hồng đỏ',        cat: 'Hoa hộp',      img: 'hop/hop-01-1.jpg',    price: 650000, cost: 340000, mode: 'Có sẵn',       onHand: 2, reserved: 1 },
+  'GIO-001': { name: 'Giỏ hoa hướng dương',    cat: 'Hoa giỏ',      img: 'gio/gio-01-1.jpg',    price: 520000, cost: 270000, mode: 'Làm theo đơn', onHand: 0, reserved: 0 },
+  'LD-001':  { name: 'Lồng đèn hoa lụa',       cat: 'Hoa lồng đèn', img: 'longden/longden-01-1.jpg', price: 380000, cost: 190000, mode: 'Linh hoạt', onHand: 4, reserved: 1 }
+};
+const STATUS = {
+  NEW: ['Mới', 'st-new'], CONFIRMED: ['Đã xác nhận', 'st-confirmed'], DELIVERING: ['Đang giao', 'st-delivering'],
+  COMPLETED: ['Hoàn thành', 'st-done'], CANCELLED: ['Đã hủy', 'st-cancel'], DELIVERY_FAILED: ['Giao thất bại', 'st-failed']
+};
+const ORDERS = {
+  '001': { code: 'DH-261026-001', status: 'DELIVERING', customer: 'Nguyễn Thu Hà', phone: '0912 345 678', rname: 'Phạm Minh Châu', rphone: '0988 123 456', channel: 'Zalo', type: 'Giao tận nơi', addr: '18 Nguyễn Chí Thanh, Đống Đa, Hà Nội', date: '26/10', time: '09:00 - 10:00', courier: 'Anh Hưng', discount: 0, ship: 0, paid: 480000, note: '', card: 'Chúc mừng sinh nhật mẹ!',
+    lines: [{ sku: 'BO-005', qty: 1, stock: 0, make: 1, made: 1 }] },
+  '002': { code: 'DH-261026-002', status: 'CONFIRMED', customer: 'Trần Quốc Bảo', phone: '0903 777 210', rname: 'Trần Quốc Bảo', rphone: '0903 777 210', channel: 'Điện thoại', type: 'Giao tận nơi', addr: '52 Lê Văn Lương, Thanh Xuân, Hà Nội', date: '26/10', time: '11:00 - 12:00', courier: '', discount: 0, ship: 50000, paid: 200000, note: '', card: '',
+    lines: [{ sku: 'BO-002', qty: 1, stock: 1, make: 0, made: 0 }, { sku: 'LD-001', qty: 1, stock: 1, make: 0, made: 0 }] },
+  '003': { code: 'DH-261026-003', status: 'CONFIRMED', customer: 'Lê Thị Lan', phone: '0935 662 019', rname: 'Lê Thị Lan', rphone: '0935 662 019', channel: 'Facebook', type: 'Giao tận nơi', addr: 'Nhà hàng Hoa Sen, 9 Trần Duy Hưng, Cầu Giấy, Hà Nội', date: '26/10', time: '14:00 - 15:00', courier: 'Anh Hưng', discount: 350000, ship: 50000, paid: 3000000, note: 'Trang trí bàn tiệc, giao đến sảnh trước 14:30.', card: '',
+    lines: [{ sku: 'BO-001', qty: 20, stock: 3, make: 17, made: 12 }, { sku: 'HOP-001', qty: 1, stock: 1, make: 0, made: 0 }] },
+  '004': { code: 'DH-261026-004', status: 'NEW', customer: 'Đỗ Hải Yến', phone: '0977 410 552', rname: 'Đỗ Hải Yến', rphone: '0977 410 552', channel: 'Zalo', type: 'Giao tận nơi', addr: '7 Tây Hồ, Hà Nội', date: '27/10', time: '08:00 - 09:00', courier: '', discount: 0, ship: 20000, paid: 0, note: '', card: 'Gửi tặng cô giáo',
+    lines: [{ sku: 'BO-005', qty: 1, stock: null, make: null, made: 0 }, { sku: null, free: 'Bó hoa theo yêu cầu, tông hồng trắng', price: 600000, qty: 1, stock: null, make: null, made: 0 }] },
+  '005': { code: 'DH-261026-005', status: 'CONFIRMED', customer: 'Vũ Anh Tuấn', phone: '0966 208 331', rname: 'Vũ Anh Tuấn', rphone: '0966 208 331', channel: 'Điện thoại', type: 'Giao tận nơi', addr: '24 Hoàng Quốc Việt, Cầu Giấy, Hà Nội', date: '27/10', time: '15:00 - 16:00', courier: '', discount: 0, ship: 60000, paid: 1000000, note: '', card: '',
+    lines: [{ sku: 'BO-001', qty: 6, stock: 0, make: 6, made: 0 }, { sku: 'GIO-001', qty: 2, stock: 0, make: 2, made: 0 }] },
+  '006': { code: 'DH-261025-006', status: 'COMPLETED', customer: 'Hoàng Mai', phone: '0944 100 288', rname: 'Hoàng Mai', rphone: '0944 100 288', channel: 'Tại tiệm', type: 'Đến lấy', addr: '', date: '25/10', time: '10:00 - 11:00', courier: '', discount: 0, ship: 0, paid: 420000, note: '', card: '',
+    lines: [{ sku: 'BO-002', qty: 1, stock: 1, make: 0, made: 0 }] },
+  '007': { code: 'DH-261024-007', status: 'CANCELLED', customer: 'Phan Quỳnh', phone: '0902 553 417', rname: 'Phan Quỳnh', rphone: '0902 553 417', channel: 'Facebook', type: 'Giao tận nơi', addr: 'Long Biên, Hà Nội', date: '24/10', time: '16:00 - 17:00', courier: '', discount: 0, ship: 0, paid: 0, note: '', card: '',
+    lines: [{ sku: 'HOP-001', qty: 1, stock: 0, make: 0, made: 0 }] },
+  '008': { code: 'DH-261025-008', status: 'DELIVERY_FAILED', customer: 'Ngô Đức Minh', phone: '0983 662 740', rname: 'Ngô Thu Trang', rphone: '0975 212 003', channel: 'Zalo', type: 'Giao tận nơi', addr: 'Hà Đông, Hà Nội', date: '25/10', time: '18:00 - 19:00', courier: 'Anh Hưng', discount: 0, ship: 0, paid: 520000, note: 'Người nhận vắng nhà, hẹn giao lại.', card: '',
+    lines: [{ sku: 'GIO-001', qty: 1, stock: 0, make: 1, made: 1 }] },
+  '009': { code: 'DH-261026-009', status: 'NEW', customer: 'Bùi Thanh Hương', phone: '0918 777 456', rname: 'Bùi Thanh Hương', rphone: '0918 777 456', channel: 'Facebook', type: 'Đến lấy', addr: '', date: '28/10', time: '09:00 - 10:00', courier: '', discount: 0, ship: 0, paid: 0, note: '', card: '',
+    lines: [{ sku: 'HOP-001', qty: 1, stock: null, make: null, made: 0 }] }
+};
+const CUSTOMERS = [
+  ['Lê Thị Lan', '0935 662 019', 6, 18450000, '20/10/2026'], ['Nguyễn Thu Hà', '0912 345 678', 4, 2310000, '26/10/2026'],
+  ['Trần Quốc Bảo', '0903 777 210', 3, 2120000, '26/10/2026'], ['Vũ Anh Tuấn', '0966 208 331', 2, 5800000, '19/10/2026'],
+  ['Hoàng Mai', '0944 100 288', 1, 420000, '25/10/2026'], ['Đỗ Hải Yến', '0977 410 552', 0, 0, 'Chưa có đơn hoàn thành']
+];
+const MOVES = [
+  ['26/10 08:30', 'Giữ cho đơn', '+0', 3, 3, 'Ngọc Bích', 'DH-261026-003'],
+  ['25/10 17:05', 'Làm sẵn', '+3', 3, 0, 'Thu Trang', ''],
+  ['24/10 10:12', 'Xuất cho đơn hoàn thành', '-2', 0, 0, 'Thu Trang', 'DH-261024-002'],
+  ['20/10 09:00', 'Điều chỉnh', '+2', 2, 0, 'Ngọc Bích', 'Kiểm kê đầu tuần']
+];
+
+let role = 'owner';
+const $ = (s, el = document) => el.querySelector(s);
+const fmt = n => n.toLocaleString('vi-VN') + 'đ';
+const icon = n => `<svg class="icon" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ===== Tính toán theo đúng quy tắc trong spec ===== */
+const lineName = l => l.sku ? PRODUCTS[l.sku].name : l.free;
+const linePrice = l => l.sku ? PRODUCTS[l.sku].price : l.price;
+const subtotal = o => o.lines.reduce((s, l) => s + linePrice(l) * l.qty, 0);
+const total = o => subtotal(o) - o.discount + o.ship;
+const allocated = o => o.status !== 'NEW';
+const remaining = o => allocated(o) ? o.lines.reduce((s, l) => s + Math.max(0, l.make - l.made), 0) : 0;
+const needMake = o => allocated(o) ? o.lines.reduce((s, l) => s + l.make, 0) : 0;
+const madeTotal = o => allocated(o) ? o.lines.reduce((s, l) => s + Math.min(l.made, l.make), 0) : 0;
+function prodState(o) {
+  if (!allocated(o) || ['CANCELLED', 'COMPLETED'].includes(o.status)) return null;
+  if (remaining(o) === 0) return ['Đã đủ hàng', 'done'];
+  return madeTotal(o) > 0 ? ['Đang làm', 'doing'] : ['Chưa làm', 'todo'];
+}
+function payState(o) {
+  const t = total(o);
+  if (o.paid <= 0) return 'Chưa thanh toán';
+  return o.paid >= t ? 'Đã thanh toán đủ' : 'Đã cọc';
+}
+const owed = o => Math.max(0, total(o) - o.paid);
+const badge = s => `<span class="badge ${STATUS[s][1]}">${STATUS[s][0]}</span>`;
+const active = o => ['CONFIRMED', 'DELIVERING', 'DELIVERY_FAILED'].includes(o.status);
+const ids = () => Object.keys(ORDERS);
+
+/* ===== Điều hướng ===== */
+const NAV = [
+  { group: 'Công việc', items: [['today', 'Hôm nay', 'today'], ['orders', 'Đơn hàng', 'orders'], ['production', 'Sản xuất', 'make']] },
+  { group: 'Dữ liệu', items: [['products', 'Sản phẩm', 'box'], ['customers', 'Khách hàng', 'users']] },
+  { group: 'Quản trị', owner: true, items: [['exports', 'Xuất Excel', 'download'], ['staff', 'Nhân viên', 'shield']] }
+];
+const MOBILE = [['today', 'Hôm nay', 'today'], ['orders', 'Đơn hàng', 'orders'], ['production', 'Sản xuất', 'make'], ['products', 'Sản phẩm', 'box']];
+const route = () => {
+  const [, name = 'today', arg] = location.hash.split('/');
+  return { name, arg };
+};
+const section = name => ({ order: 'orders', 'order-new': 'orders', product: 'products' }[name] || name);
+
+function shell(r, html) {
+  const sec = section(r.name);
+  const confirmedNew = ids().filter(i => ORDERS[i].status === 'NEW').length;
+  const side = NAV.map(g => `
+    <div class="navgroup" ${g.owner ? 'data-owner-only' : ''}>
+      <div class="navtitle">${g.group}</div>
+      ${g.items.map(([id, label, ic]) => `<a class="navlink" href="#/${id}" ${sec === id ? 'aria-current="page"' : ''}>${icon(ic)}${label}${id === 'orders' && confirmedNew ? `<span class="count" aria-label="${confirmedNew} đơn mới">${confirmedNew}</span>` : ''}</a>`).join('')}
+    </div>`).join('');
+  const bottom = MOBILE.map(([id, label, ic]) => `<a href="#/${id}" ${sec === id ? 'aria-current="page"' : ''}>${icon(ic)}${label}${id === 'orders' && confirmedNew ? `<span class="badge-dot" aria-label="${confirmedNew} đơn mới">${confirmedNew}</span>` : ''}</a>`).join('')
+    + `<button type="button" data-act="more" ${['customers', 'exports', 'staff'].includes(sec) ? 'aria-current="page"' : ''}>${icon('more')}Thêm</button>`;
+  return `
+  <div class="app">
+    <aside class="sidebar" aria-label="Điều hướng chính">
+      <div class="brand"><b>Bích Ngọc Florist</b><span>Quản lý tiệm</span></div>
+      <nav>${side}</nav>
+      <div class="demo"><p>Chỉ có trong bản mockup: xem giao diện theo vai trò.</p>${roleSeg()}</div>
+      <div class="userbox"><div class="who">${role === 'owner' ? 'Ngọc Bích' : 'Thu Trang'}</div><div class="role">${role === 'owner' ? 'Chủ shop' : 'Nhân viên'}</div>
+        <a class="btn btn-ghost" href="#/login" style="margin-left:-12px">${icon('out')}Đăng xuất</a></div>
+    </aside>
+    <main class="main" id="view" tabindex="-1">
+      <div class="demo demo-mobile"><p>Chỉ có trong bản mockup: xem giao diện theo vai trò.</p>${roleSeg()}</div>
+      ${html}
+    </main>
+    <nav class="bottomnav" aria-label="Điều hướng chính">${bottom}</nav>
+  </div>`;
+}
+const roleSeg = () => `<div class="seg" role="group" aria-label="Vai trò xem thử">
+  <button type="button" data-act="role" data-role="owner" aria-pressed="${role === 'owner'}">Chủ shop</button>
+  <button type="button" data-act="role" data-role="staff" aria-pressed="${role === 'staff'}">Nhân viên</button></div>`;
+
+/* ===== Thành phần dùng chung ===== */
+function allocBar(l, o) {
+  const q = l.qty;
+  if (!allocated(o)) {
+    return `<div class="notice info" role="note">${icon('info')}<span>Chưa giữ hàng. Khi xác nhận, hệ thống sẽ tự phân bổ từ kho và tính phần cần làm.</span></div>`;
+  }
+  const todo = Math.max(0, l.make - l.made);
+  const w = (n) => `style="flex-grow:${n}; flex-basis:0"`;
+  return `
+    <div class="alloc" role="img" aria-label="Đặt ${q}: lấy từ kho ${l.stock}, đã làm ${l.made}, còn phải làm ${todo}">
+      <i class="a-stock" ${w(l.stock)}></i><i class="a-made" ${w(l.made)}></i><i class="a-todo" ${w(todo)}></i>
+    </div>
+    <div class="legend">${l.stock ? `<span class="lg-stock">Lấy từ kho <b>${l.stock}</b></span>` : ''}${l.made ? `<span class="lg-made">Đã làm <b>${l.made}</b></span>` : ''}${todo ? `<span class="lg-todo">Còn phải làm <b>${todo}</b></span>` : ''}${!l.stock && !l.made && !todo ? '<span>Không cần làm thêm</span>' : ''}</div>`;
+}
+function stepper(id, i, l) {
+  return `<div class="qty" role="group" aria-label="Số lượng đã làm">
+    <button type="button" data-act="made" data-o="${id}" data-i="${i}" data-d="-1" aria-label="Giảm số đã làm" ${l.made <= 0 ? 'disabled' : ''}>${icon('minus')}</button>
+    <output aria-live="polite">${l.made}/${l.make}</output>
+    <button type="button" data-act="made" data-o="${id}" data-i="${i}" data-d="1" aria-label="Tăng số đã làm" ${l.made >= l.make ? 'disabled' : ''}>${icon('plus')}</button></div>`;
+}
+function orderRow(id) {
+  const o = ORDERS[id], ps = prodState(o), t = total(o);
+  const prod = ps ? `<span class="mini">${ps[0]}${needMake(o) ? ` <span class="bar" aria-hidden="true"><i style="width:${Math.round(madeTotal(o) / needMake(o) * 100)}%"></i></span>${madeTotal(o)}/${needMake(o)}` : ''}</span>` : (o.status === 'NEW' ? 'Chưa phân bổ' : '');
+  return `<a class="orow" href="#/order/${id}">
+    <span class="c-code">${o.code}</span>
+    <span class="c-status">${badge(o.status)}</span>
+    <span class="c-who"><b>${esc(o.rname)}</b><br><span class="muted small">${o.date} · ${o.time}${o.type === 'Đến lấy' ? ' · Đến lấy' : ''}</span></span>
+    <span class="c-prod">${prod}</span>
+    <span class="c-pay">${payState(o)}${owed(o) && o.status !== 'CANCELLED' ? `<br>Còn ${fmt(owed(o))}` : ''}</span>
+    <span class="c-total num">${fmt(t)}</span></a>`;
+}
+const orderHead = `<div class="ohead" aria-hidden="true"><span>Mã đơn</span><span>Người nhận, giờ giao</span><span>Trạng thái</span><span>Sản xuất</span><span>Thanh toán</span><span style="text-align:right">Tổng tiền</span></div>`;
+
+/* ===== Màn hình ===== */
+const VIEWS = {
+  login() {
+    return `<div class="auth"><div class="form">
+      <div><h1>Bích Ngọc Florist</h1><p class="muted">Đăng nhập để quản lý đơn hàng và sản phẩm.</p></div>
+      <form onsubmit="event.preventDefault(); location.hash='#/today'" style="display:grid; gap:16px">
+        <div class="field"><label for="u">Tên đăng nhập</label><input class="input" id="u" name="u" autocomplete="username" autocapitalize="none" value="ngocbich"></div>
+        <div class="field"><label for="p">Mật khẩu</label><div class="input-wrap"><input class="input" id="p" type="password" autocomplete="current-password" value="matkhaumau" style="padding-left:12px"><button class="toggle" type="button" data-act="pw">Hiện</button></div>
+          <span class="hint">Quên mật khẩu? Nhờ chủ shop đặt lại cho bạn.</span></div>
+        <button class="btn btn-primary btn-block" type="submit">Đăng nhập</button>
+      </form></div>
+      <div class="photo"><img src="${IMG}bo/bo-01-1.jpg" alt="Bó hoa sáp đỏ của tiệm" width="900" height="1100"></div></div>`;
+  },
+
+  today() {
+    const give = ids().filter(i => active(ORDERS[i]) && ORDERS[i].date === '26/10');
+    const fresh = ids().filter(i => ORDERS[i].status === 'NEW');
+    const left = ids().reduce((s, i) => s + (active(ORDERS[i]) ? remaining(ORDERS[i]) : 0), 0);
+    const owe = give.reduce((s, i) => s + owed(ORDERS[i]), 0);
+    const byProd = {};
+    ids().filter(i => active(ORDERS[i])).forEach(i => ORDERS[i].lines.forEach(l => { if (l.sku && l.make - l.made > 0) byProd[l.sku] = (byProd[l.sku] || 0) + l.make - l.made; }));
+    return `
+      <div class="pagehead"><div><h1>Hôm nay</h1><p class="sub">Thứ Hai, 26/10/2026</p></div>
+        <a class="btn btn-primary" href="#/order-new">${icon('plus')}Tạo đơn</a></div>
+      <div class="stats">
+        <div><div class="v num">${give.length}</div><div class="l">Đơn cần giao hôm nay</div></div>
+        <div><div class="v num">${fresh.length}</div><div class="l">Đơn mới chưa xác nhận</div></div>
+        <div><div class="v num">${left}</div><div class="l">Sản phẩm còn phải làm</div></div>
+        <div><div class="v num">${fmt(owe)}</div><div class="l">Còn phải thu hôm nay</div></div>
+      </div>
+      <section class="section" aria-labelledby="h-give"><div class="head"><h2 id="h-give">Cần giao hôm nay</h2><a href="#/orders">Xem tất cả đơn</a></div>
+        <div class="olist">${orderHead}${give.map(orderRow).join('')}</div></section>
+      <section class="section" aria-labelledby="h-make"><div class="head"><h2 id="h-make">Việc cần làm</h2><a href="#/production">Mở bảng sản xuất</a></div>
+        <div class="panel divide">${Object.entries(byProd).map(([sku, n]) => `
+          <div class="line" style="grid-template-columns:56px 1fr auto; align-items:center"><img class="thumb" style="width:56px;height:56px" src="${IMG}${PRODUCTS[sku].img}" alt="" width="56" height="56" loading="lazy">
+          <div><div class="nm">${PRODUCTS[sku].name}</div><div class="meta">${sku}</div></div><div style="font-weight:600; font-size:1.25rem">${n}</div></div>`).join('')}</div></section>
+      <section class="section" aria-labelledby="h-new"><div class="head"><h2 id="h-new">Đơn mới chờ xác nhận</h2></div>
+        <div class="olist">${orderHead}${fresh.map(orderRow).join('')}</div></section>`;
+  },
+
+  orders() {
+    const counts = {}; ids().forEach(i => counts[ORDERS[i].status] = (counts[ORDERS[i].status] || 0) + 1);
+    const chip = (label, n, on) => `<button class="chip" type="button" aria-pressed="${!!on}" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">${label}<span class="n">${n}</span></button>`;
+    return `
+      <div class="pagehead"><h1>Đơn hàng</h1><a class="btn btn-primary" href="#/order-new">${icon('plus')}Tạo đơn</a></div>
+      <div class="field" style="margin-bottom:12px"><label class="sr" for="q">Tìm đơn</label>
+        <div class="input-wrap">${icon('search')}<input class="input" id="q" type="search" inputmode="search" placeholder="Tìm theo mã đơn, tên hoặc số điện thoại"></div></div>
+      <div class="chips" role="group" aria-label="Lọc theo trạng thái">${chip('Tất cả', ids().length, true)}${Object.keys(STATUS).map(s => chip(STATUS[s][0], counts[s] || 0, false)).join('')}</div>
+      <div class="olist" style="margin-top:12px">${orderHead}${ids().reverse().map(orderRow).join('')}</div>`;
+  },
+
+  order(id) {
+    const o = ORDERS[id]; if (!o) return '<p>Không tìm thấy đơn.</p>';
+    const t = total(o), rest = remaining(o), ps = prodState(o), flow = ['NEW', 'CONFIRMED', 'DELIVERING', 'COMPLETED'];
+    const idx = flow.indexOf(o.status);
+    const steps = ['Mới', 'Đã xác nhận', o.type === 'Đến lấy' ? 'Sẵn sàng nhận' : 'Đang giao', 'Hoàn thành'];
+    const stepHtml = idx < 0
+      ? `<ol class="steps" aria-label="Tiến trình đơn">${steps.map((s, k) => `<li class="${k < 2 ? 'done' : 'skip'}">${s}</li>`).join('')}</ol>`
+      : `<ol class="steps" aria-label="Tiến trình đơn">${steps.map((s, k) => `<li class="${k < idx ? 'done' : k === idx ? 'now' : ''}" ${k === idx ? 'aria-current="step"' : ''}>${s}</li>`).join('')}</ol>`;
+    let act = '';
+    if (o.status === 'NEW') act = `<button class="btn btn-primary" type="button" data-act="toast" data-msg="Xác nhận: hệ thống giữ hàng và tính phần cần làm">Xác nhận đơn</button><a class="btn btn-secondary" href="#/order-new">Sửa đơn</a><button class="btn btn-danger" type="button" data-act="toast" data-msg="Hủy đơn mới: không ảnh hưởng tồn kho">Hủy đơn</button>`;
+    if (o.status === 'CONFIRMED') act = `<button class="btn btn-primary" type="button" data-act="toast" data-msg="Chuyển sang Đang giao" ${rest ? 'disabled' : ''}>${o.type === 'Đến lấy' ? 'Sẵn sàng nhận' : 'Bắt đầu giao'}</button>
+      <button class="btn btn-secondary" type="button" data-owner-only data-act="toast" data-msg="Hủy xác nhận: trả hàng đã giữ, đưa đơn về Mới">Hủy xác nhận</button>
+      <button class="btn btn-danger" type="button" data-owner-only data-act="toast" data-msg="Hủy đơn: hỏi nhập kho hay hư hao cho hàng đã làm">Hủy đơn</button>
+      ${rest ? `<span class="why">Còn ${rest} sản phẩm chưa làm xong. Cập nhật số đã làm bên dưới để mở bước giao.</span>` : ''}`;
+    if (o.status === 'DELIVERING') act = `<button class="btn btn-primary" type="button" data-act="toast" data-msg="Hoàn thành: hàng lấy từ kho được xuất khỏi tồn">Hoàn thành đơn</button><button class="btn btn-secondary" type="button" data-act="toast" data-msg="Giao thất bại: vẫn giữ hàng, có thể giao lại">Báo giao thất bại</button>`;
+    if (o.status === 'DELIVERY_FAILED') act = `<button class="btn btn-primary" type="button" data-act="toast" data-msg="Giao lại">Giao lại</button><button class="btn btn-danger" type="button" data-owner-only data-act="toast" data-msg="Hủy đơn: trả hàng về kho theo lựa chọn">Hủy đơn</button>`;
+    const lines = o.lines.map((l, i) => {
+      const p = l.sku ? PRODUCTS[l.sku] : null;
+      const work = allocated(o) && active(o) && l.make > 0 ? `<div class="actions" style="margin-top:12px">${stepper(id, i, l)}<button class="btn btn-secondary" type="button" data-act="made" data-o="${id}" data-i="${i}" data-d="all" ${l.made >= l.make ? 'disabled' : ''}>Làm xong hết</button></div>` : '';
+      return `<div class="line">
+        ${p ? `<img class="thumb" src="${IMG}${p.img}" alt="" width="64" height="64" loading="lazy">` : `<div class="thumb free">Dòng tự do</div>`}
+        <div><div class="top"><div><div class="nm">${esc(lineName(l))}</div><div class="meta">${p ? l.sku + ' · ' : ''}${fmt(linePrice(l))} × ${l.qty}</div></div><div class="nm num">${fmt(linePrice(l) * l.qty)}</div></div></div>
+        <div class="work">${allocBar(l, o)}${work}</div></div>`;
+    }).join('');
+    const pay = o.paid > 0 ? `<li><span><b>${fmt(o.paid)}</b> · ${o.paid >= t ? 'Thanh toán đủ' : 'Cọc'} · Chuyển khoản<br><span class="when">${o.date === '26/10' ? '20/10 08:15' : '24/10 15:20'} · Thu Trang</span></span></li>` : '<li><span class="muted">Chưa có khoản thanh toán nào.</span></li>';
+    return `
+      <a class="back" href="#/orders">${icon('back')}Đơn hàng</a>
+      <div class="pagehead" style="margin-top:4px"><div><h1>${o.code}</h1><p class="sub">${o.customer} · Kênh ${o.channel}</p></div>${badge(o.status)}</div>
+      <div class="twocol"><div>
+        <div class="panel"><div class="pad">${stepHtml}</div></div>
+        <div class="actions" style="margin-top:16px">${act}</div>
+        <section class="section" aria-labelledby="h-lines"><div class="head"><h2 id="h-lines">Sản phẩm</h2>${ps ? `<span class="tag">${ps[0]}</span>` : ''}</div>
+          <div class="panel divide">${lines}</div></section>
+        <section class="section" aria-labelledby="h-ship"><div class="head"><h2 id="h-ship">Giao nhận</h2></div>
+          <dl class="panel kv" style="margin:0">
+            <dt>Người đặt</dt><dd>${esc(o.customer)} · ${o.phone}</dd>
+            <dt>Người nhận</dt><dd>${esc(o.rname)} · ${o.rphone}</dd>
+            <dt>Hình thức</dt><dd>${o.type}</dd>
+            ${o.addr ? `<dt>Địa chỉ</dt><dd>${esc(o.addr)}</dd>` : ''}
+            <dt>Thời gian</dt><dd>${o.date}/2026 · ${o.time}</dd>
+            ${o.courier ? `<dt>Người giao</dt><dd>${o.courier}</dd>` : ''}
+            ${o.card ? `<dt>Lời chúc</dt><dd>${esc(o.card)}</dd>` : ''}
+            ${o.note ? `<dt>Ghi chú</dt><dd>${esc(o.note)}</dd>` : ''}
+          </dl></section>
+      </div>
+      <aside>
+        <section aria-labelledby="h-pay"><div class="head" style="display:flex;justify-content:space-between;margin-bottom:12px"><h2 id="h-pay">Thanh toán</h2><span class="tag">${payState(o)}</span></div>
+          <div class="panel"><div class="money">
+            <div><span class="muted">Tạm tính</span><span class="num">${fmt(subtotal(o))}</span></div>
+            <div><span class="muted">Giảm giá</span><span class="num">${o.discount ? '-' + fmt(o.discount) : '0đ'}</span></div>
+            <div><span class="muted">Phí giao</span><span class="num">${fmt(o.ship)}</span></div>
+            <div class="total"><span>Tổng tiền</span><span class="num">${fmt(t)}</span></div>
+            <div><span class="muted">Đã thu</span><span class="num ok">${fmt(o.paid)}</span></div>
+            <div><span class="muted">Còn lại</span><span class="num ${owed(o) ? 'owe' : 'ok'}">${fmt(owed(o))}</span></div></div>
+            <ul class="timeline" style="border-top:1px solid var(--line)">${pay}</ul>
+            <div class="pad actions" style="border-top:1px solid var(--line)"><button class="btn btn-secondary" type="button" ${['CANCELLED'].includes(o.status) ? 'disabled' : ''} data-act="toast" data-msg="Ghi nhận thanh toán: số tiền, hình thức, ghi chú">Ghi nhận thanh toán</button>
+            <button class="btn btn-ghost" type="button" data-owner-only data-act="toast" data-msg="Hoàn tiền chỉ chủ shop thực hiện">Hoàn tiền</button></div></div></section>
+        <section class="section" aria-labelledby="h-log"><div class="head"><h2 id="h-log">Lịch sử</h2></div>
+          <div class="panel"><ul class="timeline">
+            <li><span>Tạo đơn<br><span class="when">20/10 08:12 · Thu Trang</span></span></li>
+            ${o.paid ? `<li><span>Ghi nhận ${fmt(o.paid)}<br><span class="when">20/10 08:15 · Thu Trang</span></span></li>` : ''}
+            ${allocated(o) ? `<li><span>Xác nhận đơn: giữ ${o.lines.reduce((s, l) => s + (l.stock || 0), 0)} từ kho, cần làm ${needMake(o)}<br><span class="when">20/10 08:30 · Thu Trang</span></span></li>` : ''}
+            ${madeTotal(o) ? `<li><span>Cập nhật đã làm ${madeTotal(o)}/${needMake(o)}<br><span class="when">25/10 17:40 · Thu Trang</span></span></li>` : ''}
+          </ul></div></section>
+      </aside></div>`;
+  },
+
+  'order-new'() {
+    const L = [['BO-001', 20, '3 có sẵn: lấy 3, làm thêm 17'], ['HOP-001', 1, 'Có sẵn 1 (Có sẵn): lấy 1']];
+    return `
+      <a class="back" href="#/orders">${icon('back')}Hủy</a>
+      <div class="pagehead" style="margin-top:4px"><div><h1>Tạo đơn mới</h1><p class="sub">Mã đơn sẽ được cấp khi lưu.</p></div></div>
+      <div style="display:grid; gap:32px; max-width:760px">
+        <section aria-labelledby="f1"><h2 id="f1" style="margin-bottom:12px">Khách hàng</h2>
+          <div class="field"><label for="ph">Số điện thoại</label><div class="input-wrap">${icon('search')}<input class="input" id="ph" type="tel" inputmode="tel" autocomplete="off" value="0935 662 019"></div>
+            <span class="hint">Nhập số điện thoại để tìm khách cũ. Khách mới sẽ được tạo khi lưu đơn.</span></div>
+          <div class="found" style="margin-top:12px"><div><b>Lê Thị Lan</b><div class="small muted">6 đơn · mua gần nhất 20/10/2026</div></div><button class="btn btn-ghost" type="button" data-act="toast" data-msg="Đổi khách">Đổi</button></div></section>
+        <section aria-labelledby="f2"><h2 id="f2" style="margin-bottom:12px">Giao nhận</h2>
+          <div class="seg" role="group" aria-label="Hình thức nhận" style="margin-bottom:16px"><button type="button" aria-pressed="true" data-act="seg">Giao tận nơi</button><button type="button" aria-pressed="false" data-act="seg">Đến lấy</button></div>
+          <div style="display:grid; gap:16px">
+            <div class="row2"><div class="field"><label for="rn">Người nhận</label><input class="input" id="rn" value="Lê Thị Lan"></div><div class="field"><label for="rp">Số điện thoại người nhận</label><input class="input" id="rp" type="tel" inputmode="tel" value="0935 662 019"></div></div>
+            <div class="field"><label for="ad">Địa chỉ giao</label><input class="input" id="ad" value="Nhà hàng Hoa Sen, 9 Trần Duy Hưng, Cầu Giấy, Hà Nội"></div>
+            <div class="row2"><div class="field"><label for="dd">Ngày giao</label><input class="input" id="dd" type="date" value="2026-10-26"></div>
+              <div class="field"><label for="dt">Khung giờ</label><select class="select" id="dt"><option>14:00 - 15:00</option><option>15:00 - 16:00</option></select></div></div>
+          </div></section>
+        <section aria-labelledby="f3"><h2 id="f3" style="margin-bottom:12px">Sản phẩm</h2>
+          <div class="field" style="margin-bottom:12px"><label class="sr" for="sp">Thêm sản phẩm</label><div class="input-wrap">${icon('search')}<input class="input" id="sp" placeholder="Tìm sản phẩm theo tên hoặc mã"></div></div>
+          <div class="panel divide">${L.map(([sku, q, hint]) => { const p = PRODUCTS[sku]; return `
+            <div class="line"><img class="thumb" src="${IMG}${p.img}" alt="" width="64" height="64" loading="lazy">
+              <div><div class="top"><div><div class="nm">${p.name}</div><div class="meta">${sku} · ${fmt(p.price)}</div></div><div class="nm num">${fmt(p.price * q)}</div></div></div>
+              <div class="work"><div class="actions"><div class="qty" role="group" aria-label="Số lượng"><button type="button" aria-label="Giảm">${icon('minus')}</button><output>${q}</output><button type="button" aria-label="Tăng">${icon('plus')}</button></div><button class="btn btn-ghost" type="button" data-act="toast" data-msg="Xóa dòng">Xóa</button></div>
+              <p class="small muted" style="margin-top:8px">Dự kiến khi xác nhận: ${hint}.</p></div></div>`; }).join('')}</div>
+          <button class="btn btn-secondary" type="button" style="margin-top:12px" data-act="toast" data-msg="Dòng tự do: nhập tên và giá, không gắn tồn kho">${icon('plus')}Thêm dòng tự do</button></section>
+        <section aria-labelledby="f4"><h2 id="f4" style="margin-bottom:12px">Thanh toán và ghi chú</h2>
+          <div style="display:grid; gap:16px">
+            <div class="row2"><div class="field"><label for="dc">Giảm giá (đ)</label><input class="input" id="dc" inputmode="numeric" value="350.000"></div><div class="field"><label for="sh">Phí giao (đ)</label><input class="input" id="sh" inputmode="numeric" value="50.000"></div></div>
+            <div class="field"><label for="dp">Tiền cọc (đ)</label><input class="input" id="dp" inputmode="numeric" value="3.000.000"><span class="hint">Có thể ghi thêm các lần thanh toán sau trong chi tiết đơn.</span></div>
+            <div class="field"><label for="cm">Lời chúc trên thiệp</label><input class="input" id="cm" placeholder="Không bắt buộc"></div>
+            <div class="field"><label for="nt">Ghi chú nội bộ</label><textarea class="textarea" id="nt">Trang trí bàn tiệc, giao đến sảnh trước 14:30.</textarea></div>
+          </div></section>
+      </div>
+      <div class="stickybar"><div><div class="t">Tổng tiền</div><div class="v num">7.350.000đ</div></div><button class="btn btn-primary" type="button" data-act="toast" data-msg="Đã lưu đơn mới (mockup)">Lưu đơn</button></div>`;
+  },
+
+  production() {
+    const groups = {};
+    ids().filter(i => active(ORDERS[i])).forEach(i => ORDERS[i].lines.forEach((l, k) => { if (l.sku && l.make > 0) (groups[l.sku] = groups[l.sku] || []).push({ id: i, k, l }); }));
+    const left = rows => rows.reduce((s, r) => s + Math.max(0, r.l.make - r.l.made), 0);
+    const html = Object.entries(groups).sort((a, b) => left(b[1]) - left(a[1])).map(([sku, rows]) => {
+      const remainingQty = left(rows);
+      return `<section class="group panel" aria-label="${PRODUCTS[sku].name}">
+        <div class="ghead"><img src="${IMG}${PRODUCTS[sku].img}" alt="" width="56" height="56" loading="lazy"><div><h2>${PRODUCTS[sku].name}</h2><div class="small muted">${sku}</div></div>
+          <div class="left num">${remainingQty}<small>còn phải làm</small></div></div>
+        ${rows.map(({ id, k, l }) => { const o = ORDERS[id]; return `<div class="prow"><div class="top"><div><a href="#/order/${id}"><b>${o.code}</b></a> · ${esc(o.rname)}<div class="small muted">Giao ${o.date} · ${o.time}</div></div><div class="small muted">Đặt ${l.qty}, lấy kho ${l.stock}</div></div>
+          ${allocBar(l, o)}<div class="ctl">${stepper(id, k, l)}<button class="btn btn-secondary" type="button" data-act="made" data-o="${id}" data-i="${k}" data-d="all" ${l.made >= l.make ? 'disabled' : ''}>Làm xong hết</button></div></div>`; }).join('')}</section>`;
+    }).join('');
+    return `<div class="pagehead"><div><h1>Sản xuất</h1><p class="sub">Việc cần làm từ các đơn đã xác nhận.</p></div></div>
+      <div class="chips" role="group" aria-label="Lọc theo ngày giao"><button class="chip" type="button" aria-pressed="true" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">Tất cả</button><button class="chip" type="button" aria-pressed="false" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">Giao hôm nay</button><button class="chip" type="button" aria-pressed="false" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">Giao ngày mai</button></div>
+      ${html || '<div class="panel pad"><p>Chưa có việc cần làm. Khi một đơn được xác nhận và cần làm thêm, việc sẽ hiện ở đây.</p></div>'}`;
+  },
+
+  products() {
+    const cards = Object.entries(PRODUCTS).map(([sku, p]) => {
+      const av = p.onHand - p.reserved;
+      const trio = p.mode === 'Làm theo đơn' ? `<p class="small muted" style="margin-top:8px">Làm theo đơn, không dùng tồn kho</p>`
+        : `<div class="stocktrio"><div>Đang có<b>${p.onHand}</b></div><div>Đã giữ<b>${p.reserved}</b></div><div class="avail ${av === 0 ? 'zero' : ''}">Sẵn sàng bán<b>${av}</b></div></div>`;
+      return `<a class="pcard" href="#/product/${sku}"><img src="${IMG}${p.img}" alt="${p.name}" width="96" height="120" loading="lazy">
+        <div><div class="nm">${p.name}</div><div class="code">${sku} · ${p.cat}</div><div class="price num">${fmt(p.price)}</div>${trio}
+        ${p.mode === 'Có sẵn' && av === 0 ? '<span class="tag" style="margin-top:8px">Hết hàng</span>' : `<span class="tag" style="margin-top:8px">${p.mode}</span>`}</div></a>`;
+    }).join('');
+    return `<div class="pagehead"><h1>Sản phẩm</h1><button class="btn btn-primary" type="button" data-owner-only data-act="toast" data-msg="Thêm sản phẩm: mã, tên, danh mục, giá, ảnh">${icon('plus')}Thêm sản phẩm</button></div>
+      <div class="field" style="margin-bottom:12px"><label class="sr" for="sq">Tìm sản phẩm</label><div class="input-wrap">${icon('search')}<input class="input" id="sq" type="search" placeholder="Tìm theo tên hoặc mã sản phẩm"></div></div>
+      <div class="chips" role="group" aria-label="Lọc theo danh mục"><button class="chip" type="button" aria-pressed="true" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">Tất cả<span class="n">7</span></button><button class="chip" type="button" aria-pressed="false" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">Hoa bó<span class="n">4</span></button><button class="chip" type="button" aria-pressed="false" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">Hoa hộp<span class="n">1</span></button><button class="chip" type="button" aria-pressed="false" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">Hoa giỏ<span class="n">1</span></button><button class="chip" type="button" aria-pressed="false" data-act="toast" data-msg="Bộ lọc hoạt động trong ứng dụng thật">Hoa lồng đèn<span class="n">1</span></button></div>
+      <div class="pgrid" style="margin-top:12px">${cards}</div>`;
+  },
+
+  product(sku) {
+    const p = PRODUCTS[sku || 'BO-001']; sku = sku || 'BO-001'; if (!p) return '<p>Không tìm thấy sản phẩm.</p>';
+    const av = p.onHand - p.reserved;
+    return `<a class="back" href="#/products">${icon('back')}Sản phẩm</a>
+      <div class="pagehead" style="margin-top:4px"><div><h1>${p.name}</h1><p class="sub">${sku} · ${p.cat}</p></div>
+        <div class="actions"><button class="btn btn-primary" type="button" data-act="toast" data-msg="Nhập thêm hàng làm sẵn: số lượng, ghi chú">${icon('plus')}Nhập thêm hàng làm sẵn</button>
+        <button class="btn btn-secondary" type="button" data-owner-only data-act="toast" data-msg="Điều chỉnh tồn kho cần ghi lý do">Điều chỉnh tồn kho</button>
+        <button class="btn btn-secondary" type="button" data-owner-only data-act="toast" data-msg="Sửa sản phẩm">Sửa sản phẩm</button></div></div>
+      <div class="pdetail"><img class="photo" src="${IMG}${p.img}" alt="${p.name}" width="640" height="800">
+        <div style="display:grid; gap:24px; grid-template-columns:minmax(0,1fr)">
+          ${p.mode === 'Làm theo đơn' ? '<div class="notice info">' + icon('info') + '<span>Sản phẩm làm theo đơn nên không dùng tồn kho. Số lượng cần làm được tính trên từng đơn.</span></div>' : `
+          <div><div class="bigtrio"><div><div class="v num">${p.onHand}</div><div class="l">Đang có</div></div><div><div class="v num">${p.reserved}</div><div class="l">Đã giữ cho đơn</div></div><div class="main"><div class="v num">${av}</div><div class="l">Sẵn sàng bán</div></div></div>
+          <p class="small muted" style="margin-top:8px">Sẵn sàng bán = Đang có - Đã giữ cho đơn</p></div>`}
+          <dl class="panel kv" style="margin:0"><dt>Giá bán</dt><dd class="num">${fmt(p.price)}</dd><dt data-owner-only>Giá vốn</dt><dd class="num" data-owner-only>${fmt(p.cost)}</dd><dt>Phương thức</dt><dd>${p.mode}</dd><dt>Trạng thái</dt><dd>Đang bán</dd></dl>
+          <section aria-labelledby="h-mv"><div class="head" style="margin-bottom:12px"><h2 id="h-mv">Lịch sử tồn kho</h2></div>
+            <div class="panel scroll"><table class="tbl"><thead><tr><th>Thời gian</th><th>Loại</th><th class="r">SL</th><th class="r">Đang có</th><th class="r">Đã giữ</th><th>Người làm</th><th>Đơn hoặc lý do</th></tr></thead>
+            <tbody>${MOVES.map(m => `<tr><td>${m[0]}</td><td>${m[1]}</td><td class="r num">${m[2]}</td><td class="r num">${m[3]}</td><td class="r num">${m[4]}</td><td>${m[5]}</td><td>${m[6]}</td></tr>`).join('')}</tbody></table></div></section>
+        </div></div>`;
+  },
+
+  customers() {
+    return `<div class="pagehead"><h1>Khách hàng</h1><button class="btn btn-primary" type="button" data-act="toast" data-msg="Thêm khách hàng">${icon('plus')}Thêm khách</button></div>
+      <div class="field" style="margin-bottom:12px"><label class="sr" for="cq">Tìm khách</label><div class="input-wrap">${icon('search')}<input class="input" id="cq" type="search" inputmode="search" placeholder="Tìm theo số điện thoại hoặc tên"></div></div>
+      <div class="panel scroll"><table class="tbl"><thead><tr><th>Khách hàng</th><th>Số điện thoại</th><th class="r">Số đơn</th><th class="r">Tổng tiền</th><th>Mua gần nhất</th></tr></thead>
+      <tbody>${CUSTOMERS.map(c => `<tr><td><b>${c[0]}</b></td><td>${c[1]}</td><td class="r num">${c[2]}</td><td class="r num">${fmt(c[3])}</td><td>${c[4]}</td></tr>`).join('')}</tbody></table></div>
+      <p class="small muted" style="margin-top:12px">Số đơn và tổng tiền chỉ tính các đơn đã hoàn thành.</p>`;
+  },
+
+  exports() {
+    return `<div class="pagehead"><div><h1>Xuất Excel</h1><p class="sub">Tạo một file .xlsx gồm 5 sheet theo bộ lọc bên dưới.</p></div></div>
+      <div style="display:grid; gap:24px; max-width:760px">
+        <div class="row2"><div class="field"><label for="d1">Từ ngày</label><input class="input" id="d1" type="date" value="2026-10-01"></div><div class="field"><label for="d2">Đến ngày</label><input class="input" id="d2" type="date" value="2026-10-31"></div></div>
+        <div class="field"><span class="label" id="by">Tính theo</span><div class="seg" role="group" aria-labelledby="by"><button type="button" aria-pressed="true" data-act="seg">Ngày giao</button><button type="button" aria-pressed="false" data-act="seg">Ngày tạo đơn</button></div></div>
+        <div class="field"><span class="label" id="stt">Trạng thái đơn</span><div class="chips" style="margin:0;padding-inline:2px" role="group" aria-labelledby="stt">${Object.values(STATUS).map((s, i) => `<button class="chip" type="button" aria-pressed="${i === 3}" data-act="chip">${s[0]}</button>`).join('')}</div><span class="hint">Doanh thu trong sheet Tổng hợp chỉ tính đơn Hoàn thành.</span></div>
+        <div class="row2"><div class="field"><label for="dm">Danh mục</label><select class="select" id="dm"><option>Tất cả danh mục</option><option>Hoa bó</option><option>Hoa hộp</option></select></div><div class="field"><label for="kh">Khách hàng</label><select class="select" id="kh"><option>Tất cả khách</option><option>Lê Thị Lan</option></select></div></div>
+        <div class="panel"><div class="pad"><h2 style="margin-bottom:8px">File sẽ gồm</h2><ul class="small" style="margin:0; padding-left:20px; display:grid; gap:4px"><li>Tổng hợp: số đơn, doanh thu, đã thu, còn phải thu</li><li>Danh sách đơn hàng</li><li>Chi tiết sản phẩm trong từng đơn</li><li>Khách hàng</li><li>Sản phẩm và tồn kho</li></ul></div></div>
+        <div><button class="btn btn-primary" type="button" data-act="toast" data-msg="Tải file bao-cao-2026-10-01-2026-10-31.xlsx (mockup)">${icon('download')}Xuất Excel</button></div>
+      </div>`;
+  },
+
+  staff() {
+    const rows = [['Ngọc Bích', 'ngocbich', 'Chủ shop', 'Đang hoạt động', 'Hôm nay 07:58'], ['Thu Trang', 'thutrang', 'Nhân viên', 'Đang hoạt động', 'Hôm nay 08:03'], ['Anh Hưng', 'anhhung', 'Nhân viên', 'Đã khóa', '12/10/2026']];
+    return `<div class="pagehead"><div><h1>Nhân viên</h1><p class="sub">Tạo tài khoản, đặt lại mật khẩu, khóa khi nghỉ việc.</p></div><button class="btn btn-primary" type="button" data-act="toast" data-msg="Thêm nhân viên: tên, tên đăng nhập, mật khẩu tạm">${icon('plus')}Thêm nhân viên</button></div>
+      <div class="panel scroll"><table class="tbl"><thead><tr><th>Tên</th><th>Tên đăng nhập</th><th>Vai trò</th><th>Trạng thái</th><th>Đăng nhập gần nhất</th><th><span class="sr">Thao tác</span></th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3] === 'Đã khóa' ? '<span class="badge st-cancel">Đã khóa</span>' : '<span class="badge st-done">Đang hoạt động</span>'}</td><td>${r[4]}</td>
+        <td class="right">${r[2] === 'Chủ shop' ? '' : `<button class="btn btn-ghost" type="button" data-act="toast" data-msg="Đặt lại mật khẩu">Đặt lại mật khẩu</button><button class="btn btn-ghost" type="button" data-act="toast" data-msg="${r[3] === 'Đã khóa' ? 'Mở khóa' : 'Khóa tài khoản và hủy phiên đăng nhập'}">${r[3] === 'Đã khóa' ? 'Mở khóa' : 'Khóa'}</button>`}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+};
+
+/* ===== Vẽ và sự kiện ===== */
+const TITLES = { login: 'Đăng nhập', today: 'Hôm nay', orders: 'Đơn hàng', order: 'Chi tiết đơn', 'order-new': 'Tạo đơn mới', production: 'Sản xuất', products: 'Sản phẩm', product: 'Chi tiết sản phẩm', customers: 'Khách hàng', exports: 'Xuất Excel', staff: 'Nhân viên' };
+function render() {
+  const r = route();
+  if (!VIEWS[r.name]) { location.hash = '#/today'; return; }
+  document.body.dataset.role = role;
+  const html = VIEWS[r.name](r.arg);
+  $('#root').innerHTML = r.name === 'login' ? html : shell(r, html);
+  document.title = `${TITLES[r.name]} - Bích Ngọc Florist`;
+  window.scrollTo(0, 0);
+  const staffBlocked = role === 'staff' && ['exports', 'staff'].includes(r.name);
+  if (staffBlocked) $('#view').innerHTML = `<div class="panel pad" style="margin-top:16px"><h1 style="margin-bottom:8px">Bạn không có quyền xem trang này</h1><p class="muted" style="margin-bottom:16px">Trang này chỉ dành cho chủ shop.</p><a class="btn btn-secondary" href="#/today">Về trang Hôm nay</a></div>`;
+}
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3200); }
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+  if (a === 'role') { role = b.dataset.role; render(); }
+  else if (a === 'made') {
+    const l = ORDERS[b.dataset.o].lines[+b.dataset.i];
+    l.made = b.dataset.d === 'all' ? l.make : Math.max(0, Math.min(l.make, l.made + +b.dataset.d));
+    const y = window.scrollY; render(); window.scrollTo(0, y);
+  }
+  else if (a === 'toast') toast(b.dataset.msg);
+  else if (a === 'more') {
+    $('#more-body').innerHTML = `<a href="#/customers">${icon('users')}Khách hàng</a>` + (role === 'owner' ? `<a href="#/exports">${icon('download')}Xuất Excel</a><a href="#/staff">${icon('shield')}Nhân viên</a>` : '') + `<a href="#/login">${icon('out')}Đăng xuất</a>`;
+    $('#more-sheet').showModal();
+  }
+  else if (a === 'close-sheet') $('#more-sheet').close();
+  else if (a === 'seg') { b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+  else if (a === 'chip') b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true');
+  else if (a === 'pw') { const i = b.previousElementSibling; const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.textContent = show ? 'Ẩn' : 'Hiện'; }
+});
+$('#more-sheet').addEventListener('click', e => { if (e.target.closest('a') || e.target === e.currentTarget) $('#more-sheet').close(); });
+window.addEventListener('hashchange', render);
+if (!location.hash) location.hash = '#/login';
+render();
+</script>
+</body>
+</html>
