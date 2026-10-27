@@ -1,6 +1,6 @@
 # Milestone 1: đặc tả schema và kiến trúc
 
-Trạng thái: **bản nháp chờ duyệt**. Chưa có code. Phạm vi nghiệp vụ nằm ở [milestone-1-scope.md](milestone-1-scope.md); tài liệu này chỉ cụ thể hóa cách xây.
+Trạng thái: **đã duyệt (26/10/2026), đã triển khai** trên nhánh `milestone-1`. Các điểm triển khai khác bản nháp nằm ở mục 13. Phạm vi nghiệp vụ nằm ở [milestone-1-scope.md](milestone-1-scope.md); tài liệu này chỉ cụ thể hóa cách xây.
 
 Phần 0 liệt kê các điểm cần chủ dự án quyết định trước khi bắt đầu bước 1.
 
@@ -555,3 +555,16 @@ Cấu trúc dữ liệu trong `index.html` sẽ được đọc kỹ ở bước
 | 10 | Bất biến ở 3.9; payments bất biến ở 3.8 |
 | 11 | Mục 10 và 9 |
 | 12 | Mục 3.10 |
+
+## 13. Ghi chú triển khai (khác bản nháp)
+
+| Mục | Bản nháp | Đã làm | Lý do |
+|---|---|---|---|
+| Giá sản phẩm | `price` integer `>= 0` | `price` cho phép null = "Chưa có giá" | Catalog cũ không có giá. Sản phẩm chưa có giá không thêm vào đơn được; trang Sản phẩm có bộ lọc "Chưa có giá". |
+| Bảng người dùng | `users` riêng + bảng của thư viện auth | Dùng bảng `users`, `sessions`, `accounts`, `verifications` của Better Auth (đổi tên sang snake_case), thêm `must_change_password`, `last_login_at` | Một nguồn dữ liệu người dùng duy nhất. Vai trò lưu dạng chuỗi `owner` / `staff`. Email là địa chỉ giả `<username>@users.bichngoc.invalid` vì Better Auth bắt buộc email. |
+| Tải ảnh | URL ký sẵn, trình duyệt tải thẳng lên Storage | Trình duyệt thu nhỏ ảnh (tối đa 1600 px), gửi qua server action; server chuyển WebP 1200 px rồi lưu | Đơn giản hơn, ảnh sau khi thu nhỏ luôn dưới giới hạn body. Có hai driver: `local` (thư mục `storage/`, phục vụ qua `/api/files/...`) và `supabase`. |
+| Xác nhận đơn | Bắt buộc ngày giao nếu giao tận nơi | Bắt buộc ngày giao hoặc ngày nhận cho mọi đơn, và địa chỉ nếu giao tận nơi | Mọi màn hình theo ngày đều dựa trên ngày giao. |
+| Đổi mật khẩu tạm | Bắt đổi khi đăng nhập lần đầu | Hiện thông báo nhắc đổi trên mọi trang cho tới khi đổi | Không chặn công việc của nhân viên mới. |
+| Giới hạn đăng nhập sai | Theo tên đăng nhập và IP | Theo IP (5 lần/phút cho đăng nhập), chỉ bật ở production | Cơ chế có sẵn của Better Auth. |
+| Màn hình "Hôm nay" | Chỉ ngày hôm nay | "Theo ngày": chọn ngày bất kỳ (lùi, tiến, chọn lịch) | Yêu cầu bổ sung lọc theo ngày (scope mục 12). |
+| Khách hàng tạo cùng lúc | Không nêu | Tạo khách khi tạo đơn dùng `INSERT ... ON CONFLICT (phone) DO NOTHING` | Kiểm thử phát hiện hai đơn tạo cùng lúc cho cùng một số điện thoại mới gây lỗi trùng. |

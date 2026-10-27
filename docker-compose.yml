@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: florist-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: florist
+      POSTGRES_PASSWORD: florist
+      POSTGRES_DB: florist
+      TZ: UTC
+    ports:
+      - "5433:5432"
+    volumes:
+      - florist-db:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  florist-db:

@@ -2,9 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
       "name": "catalog",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8766"],
+      "runtimeArgs": ["-m", "http.server", "8766", "--directory", "legacy"],
       "port": 8766
     },
     {

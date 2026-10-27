@@ -1,0 +1,394 @@
+// Milestone 1 schema. Business rules: docs/milestone-1-spec.md.
+// CHECK constraints, partial unique indexes, trigram indexes and RLS live in the SQL migrations.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ===== Auth (Better Auth: username + admin plugins) =====
+
+model User {
+  id                 String    @id @default(uuid())
+  name               String
+  email              String    @unique
+  emailVerified      Boolean   @default(false) @map("email_verified")
+  image              String?
+  username           String?   @unique
+  displayUsername    String?   @map("display_username")
+  role               String?   @default("staff")
+  banned             Boolean?  @default(false)
+  banReason          String?   @map("ban_reason")
+  banExpires         DateTime? @map("ban_expires") @db.Timestamptz(3)
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions Session[]
+  accounts Account[]
+
+  categoriesCreated Category[]          @relation("CategoryCreatedBy")
+  categoriesUpdated Category[]          @relation("CategoryUpdatedBy")
+  productsCreated   Product[]           @relation("ProductCreatedBy")
+  productsUpdated   Product[]           @relation("ProductUpdatedBy")
+  customersCreated  Customer[]          @relation("CustomerCreatedBy")
+  customersUpdated  Customer[]          @relation("CustomerUpdatedBy")
+  ordersCreated     Order[]             @relation("OrderCreatedBy")
+  ordersUpdated     Order[]             @relation("OrderUpdatedBy")
+  paymentsCreated   Payment[]           @relation("PaymentCreatedBy")
+  paymentsVoided    Payment[]           @relation("PaymentVoidedBy")
+  movements         InventoryMovement[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id             String   @id @default(uuid())
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(3)
+  token          String   @unique
+  ipAddress      String?  @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  impersonatedBy String?  @map("impersonated_by")
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+// ===== Enums =====
+
+enum FulfillmentMode {
+  STOCK_ONLY
+  MADE_TO_ORDER
+  FLEXIBLE
+}
+
+enum ProductStatus {
+  ACTIVE
+  HIDDEN
+  ARCHIVED
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  DELIVERING
+  COMPLETED
+  CANCELLED
+  DELIVERY_FAILED
+}
+
+enum OrderChannel {
+  FACEBOOK
+  ZALO
+  PHONE
+  IN_STORE
+  OTHER
+}
+
+enum ReceiveType {
+  DELIVERY
+  PICKUP
+}
+
+enum StockState {
+  NONE
+  RESERVED
+  CONSUMED
+  RELEASED
+}
+
+enum PaymentType {
+  DEPOSIT
+  PAYMENT
+  REFUND
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  OTHER
+}
+
+enum MovementType {
+  INITIAL
+  PRODUCE
+  RESERVE
+  RELEASE
+  CONSUME
+  RESTOCK_FROM_ORDER
+  WRITE_OFF
+  ADJUST
+}
+
+// ===== Catalog =====
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdById String?  @map("created_by")
+  updatedById String?  @map("updated_by")
+  createdBy   User?    @relation("CategoryCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?    @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id              String          @id @default(uuid()) @db.Uuid
+  code            String          @unique
+  name            String
+  categoryId      String          @map("category_id") @db.Uuid
+  category        Category        @relation(fields: [categoryId], references: [id])
+  description     String?
+  size            String?
+  color           String?
+  /// null = chưa có giá (imported from the old catalog); cannot be added to orders until set
+  price           Int?
+  costPrice       Int?            @map("cost_price")
+  fulfillmentMode FulfillmentMode @default(FLEXIBLE) @map("fulfillment_mode")
+  onHand          Int             @default(0) @map("on_hand")
+  reserved        Int             @default(0)
+  status          ProductStatus   @default(ACTIVE)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdById     String?         @map("created_by")
+  updatedById     String?         @map("updated_by")
+  createdBy       User?           @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User?           @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+
+  images     ProductImage[]
+  orderItems OrderItem[]
+  movements  InventoryMovement[]
+
+  @@index([categoryId, status])
+  @@map("products")
+}
+
+model ProductImage {
+  id          String   @id @default(uuid()) @db.Uuid
+  productId   String   @map("product_id") @db.Uuid
+  product     Product  @relation(fields: [productId], references: [id])
+  storagePath String   @map("storage_path")
+  url         String
+  sortOrder   Int      @default(0) @map("sort_order")
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([productId, sortOrder])
+  @@map("product_images")
+}
+
+// ===== Customers & orders =====
+
+model Customer {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  /// normalized: 0xxxxxxxxx
+  phone       String   @unique
+  email       String?
+  address     String?
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdById String?  @map("created_by")
+  updatedById String?  @map("updated_by")
+  createdBy   User?    @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?    @relation("CustomerUpdatedBy", fields: [updatedById], references: [id])
+
+  orders Order[]
+
+  @@map("customers")
+}
+
+model Order {
+  id               String       @id @default(uuid()) @db.Uuid
+  code             String       @unique
+  customerId       String       @map("customer_id") @db.Uuid
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  recipientName    String       @map("recipient_name")
+  recipientPhone   String       @map("recipient_phone")
+  channel          OrderChannel
+  receiveType      ReceiveType  @map("receive_type")
+  deliveryAddress  String?      @map("delivery_address")
+  /// calendar date in Asia/Ho_Chi_Minh
+  deliveryDate     DateTime?    @map("delivery_date") @db.Date
+  /// "HH:mm"
+  deliveryTimeFrom String?      @map("delivery_time_from")
+  deliveryTimeTo   String?      @map("delivery_time_to")
+  courierName      String?      @map("courier_name")
+  status           OrderStatus  @default(NEW)
+  subtotal         Int          @default(0)
+  discount         Int          @default(0)
+  shippingFee      Int          @default(0) @map("shipping_fee")
+  total            Int          @default(0)
+  cardMessage      String?      @map("card_message")
+  note             String?
+  confirmedAt      DateTime?    @map("confirmed_at") @db.Timestamptz(3)
+  completedAt      DateTime?    @map("completed_at") @db.Timestamptz(3)
+  cancelledAt      DateTime?    @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason     String?      @map("cancel_reason")
+  failReason       String?      @map("fail_reason")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdById      String       @map("created_by")
+  updatedById      String?      @map("updated_by")
+  createdBy        User         @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User?        @relation("OrderUpdatedBy", fields: [updatedById], references: [id])
+
+  items     OrderItem[]
+  payments  Payment[]
+  movements InventoryMovement[]
+
+  @@index([status, deliveryDate])
+  @@index([deliveryDate])
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  String     @id @default(uuid()) @db.Uuid
+  orderId             String     @map("order_id") @db.Uuid
+  order               Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// null = free-text line (not tied to stock)
+  productId           String?    @map("product_id") @db.Uuid
+  product             Product?   @relation(fields: [productId], references: [id])
+  productCodeSnapshot String?    @map("product_code_snapshot")
+  nameSnapshot        String     @map("name_snapshot")
+  unitPriceSnapshot   Int        @map("unit_price_snapshot")
+  unitCostSnapshot    Int?       @map("unit_cost_snapshot")
+  qtyOrdered          Int        @map("qty_ordered")
+  qtyFromStock        Int        @default(0) @map("qty_from_stock")
+  qtyToMake           Int        @default(0) @map("qty_to_make")
+  qtyMade             Int        @default(0) @map("qty_made")
+  stockState          StockState @default(NONE) @map("stock_state")
+  allocatedAt         DateTime?  @map("allocated_at") @db.Timestamptz(3)
+  note                String?
+  sortOrder           Int        @default(0) @map("sort_order")
+  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  movements InventoryMovement[]
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model Payment {
+  id          String        @id @default(uuid()) @db.Uuid
+  orderId     String        @map("order_id") @db.Uuid
+  order       Order         @relation(fields: [orderId], references: [id])
+  type        PaymentType
+  amount      Int
+  method      PaymentMethod
+  paidAt      DateTime      @default(now()) @map("paid_at") @db.Timestamptz(3)
+  note        String?
+  voidedAt    DateTime?     @map("voided_at") @db.Timestamptz(3)
+  voidedById  String?       @map("voided_by")
+  voidedBy    User?         @relation("PaymentVoidedBy", fields: [voidedById], references: [id])
+  voidReason  String?       @map("void_reason")
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdById String        @map("created_by")
+  createdBy   User          @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+/// Append-only. products.on_hand / reserved always equal the sums of the deltas here.
+model InventoryMovement {
+  id            String       @id @default(uuid()) @db.Uuid
+  productId     String       @map("product_id") @db.Uuid
+  product       Product      @relation(fields: [productId], references: [id])
+  type          MovementType
+  quantity      Int
+  deltaOnHand   Int          @map("delta_on_hand")
+  deltaReserved Int          @map("delta_reserved")
+  onHandAfter   Int          @map("on_hand_after")
+  reservedAfter Int          @map("reserved_after")
+  orderId       String?      @map("order_id") @db.Uuid
+  order         Order?       @relation(fields: [orderId], references: [id])
+  orderItemId   String?      @map("order_item_id") @db.Uuid
+  orderItem     OrderItem?   @relation(fields: [orderItemId], references: [id])
+  reason        String?
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdById   String       @map("created_by")
+  createdBy     User         @relation(fields: [createdById], references: [id])
+
+  @@index([productId, createdAt(sort: Desc)])
+  @@index([orderId])
+  @@map("inventory_movements")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String   @map("actor_id")
+  actor      User     @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  summary    String
+  data       Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model OrderCounter {
+  day     DateTime @id @db.Date
+  lastSeq Int      @map("last_seq")
+
+  @@map("order_counters")
+}

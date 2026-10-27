@@ -1,0 +1,20 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Prisma generated client
+src/generated/
+
+# Local env and uploads
+.env
+.env.local
+.env.test
+storage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
