@@ -1,15 +1,20 @@
-# Bích Ngọc Florist: quản lý tiệm hoa
+# Bích Ngọc Florist: catalog cho khách và sổ đơn cho chủ shop
 
-Web app quản lý đơn hàng, sản phẩm, tồn kho thành phẩm, sản xuất theo đơn và khách hàng cho tiệm hoa. Có hai vai trò (chủ shop, nhân viên) và xuất Excel.
+Bản 2 là công cụ cá nhân cho một người chủ shop:
 
-- Phạm vi nghiệp vụ: [docs/milestone-1-scope.md](docs/milestone-1-scope.md)
-- Đặc tả kỹ thuật: [docs/milestone-1-spec.md](docs/milestone-1-spec.md)
-- Mockup giao diện đã duyệt: [docs/ui-mockups/index.html](docs/ui-mockups/index.html)
+- **Trang khách** (`/`): khách xem mẫu hoa, giá, nhiều ảnh, tìm theo tên hoặc mã. Bấm "Đặt mẫu này" để sao chép tin nhắn đặt mẫu rồi mở Facebook, Zalo, TikTok, hoặc gọi điện. Không có giỏ hàng.
+- **Trang quản trị** (`/admin`, đăng nhập ở `/admin/login`): đơn hàng theo lịch (ngày, tuần, tháng), màn Hôm nay, tổng hợp cần làm, sản phẩm và danh mục, khách hàng, thông tin liên hệ của shop.
+
+Tài liệu:
+
+- Đặc tả bản 2: [docs/v2-spec.md](docs/v2-spec.md)
+- Mockup đã duyệt: [docs/ui-mockups-v2/admin.html](docs/ui-mockups-v2/admin.html), [docs/ui-mockups-v2/catalog.html](docs/ui-mockups-v2/catalog.html)
+- Bản 1 (tồn kho, nhân viên, Excel) lưu ở tag `milestone-1-v1`; tài liệu cũ: [docs/milestone-1-spec.md](docs/milestone-1-spec.md)
 - Catalog tĩnh cũ: [legacy/](legacy/)
 
 ## Công nghệ
 
-Next.js 16 (App Router, server actions), React 19, TypeScript, Prisma 7 + PostgreSQL, Better Auth (đăng nhập bằng tên đăng nhập, plugin admin), Zod, ExcelJS, sharp, Vitest.
+Next.js 16 (App Router, server actions), React 19, TypeScript, Prisma 7 + PostgreSQL, Better Auth (đăng nhập bằng tên đăng nhập, tắt đăng ký), Zod, sharp, Vitest.
 
 ## Chạy ở máy
 
@@ -18,14 +23,20 @@ Yêu cầu: Node.js 22+, Docker.
 ```bash
 npm install
 cp .env.example .env          # rồi sửa BETTER_AUTH_SECRET và SEED_OWNER_PASSWORD
-npm run db:up                 # Postgres trong Docker, cổng 5433 (tạo sẵn database florist_test)
+npm run db:up                 # Postgres trong Docker, cổng 5433 (tạo sẵn florist_v2 và florist_v2_test)
 npx prisma migrate deploy     # tạo bảng, ràng buộc, RLS
-npm run db:seed               # tạo tài khoản chủ shop đầu tiên và 4 danh mục
+npm run db:seed               # tài khoản chủ shop, 4 danh mục (BO, HOP, GIO, LD), thông tin shop
 npm run db:import-catalog     # (một lần) nhập 68 sản phẩm và ảnh từ legacy/
-npm run dev                   # http://localhost:3000
+npm run dev                   # http://localhost:3000 và http://localhost:3000/admin
 ```
 
-Đăng nhập bằng `SEED_OWNER_USERNAME` / `SEED_OWNER_PASSWORD` trong `.env`. Sản phẩm nhập từ catalog cũ chưa có giá: chủ shop vào Sản phẩm, lọc "Chưa có giá" để điền.
+Đăng nhập bằng `SEED_OWNER_USERNAME` / `SEED_OWNER_PASSWORD` trong `.env`. Sản phẩm nhập từ catalog cũ chưa có giá (trang khách hiện "Liên hệ báo giá"). Khi thêm mẫu chưa có giá vào đơn, chủ shop nhập đơn giá đã báo khách ngay trên dòng sản phẩm; cũng có thể vào Sản phẩm và chọn **Sửa nhanh** để cập nhật giá catalog.
+
+Nếu máy đã có volume Postgres từ bản 1 (database `florist`), script tạo database không chạy lại. Tạo tay hai database mới:
+
+```bash
+docker exec florist-db psql -U florist -d postgres -c "CREATE DATABASE florist_v2" -c "CREATE DATABASE florist_v2_test"
+```
 
 ## Kiểm thử
 
@@ -36,29 +47,36 @@ npm run typecheck
 npm run lint
 ```
 
-Kiểm thử tích hợp chạy trên database `florist_test` (`TEST_DATABASE_URL`) và xóa sạch dữ liệu của database đó mỗi lần chạy. Trước lần đầu, tạo bảng cho nó:
+Kiểm thử tích hợp chạy trên database `florist_v2_test` (`TEST_DATABASE_URL`) và xóa sạch dữ liệu của database đó mỗi lần chạy. Trước lần đầu, tạo bảng cho nó:
 
 ```bash
-DIRECT_URL="postgresql://florist:florist@localhost:5433/florist_test" npx prisma migrate deploy
+DIRECT_URL="postgresql://florist:florist@localhost:5433/florist_v2_test" npx prisma migrate deploy
 ```
 
 ## Cấu trúc
 
 ```
 src/
-  app/(app)/        các màn hình sau đăng nhập (today, orders, production, products, ...)
-  app/login/        đăng nhập
-  app/api/          auth, xuất Excel, phục vụ ảnh khi lưu cục bộ
-  server/domain/    logic thuần: phân bổ tồn kho, tính tiền, trạng thái, ngày
-  server/services/  nghiệp vụ, mỗi thao tác ghi là một transaction
-  server/actions/   server action: kiểm quyền + Zod, rồi gọi service
-  components/       giao diện
-  lib/              ngày giờ (Asia/Ho_Chi_Minh), định dạng tiền, nhãn tiếng Việt
-prisma/             schema, migrations (có SQL viết tay cho CHECK và RLS), seed, import
-tests/              domain/ (thuần) và integration/ (Postgres)
+  app/page.tsx         trang khách (dữ liệu thật) + app/catalog.css
+  app/admin/(app)/     các màn quản trị: tổng quan, hôm nay, lịch, đơn, sản phẩm, danh mục, khách, cài đặt
+  app/admin/login/     đăng nhập
+  app/api/             auth, phục vụ ảnh khi lưu cục bộ
+  proxy.ts             chuyển về /admin/login khi chưa có phiên
+  server/domain/       logic thuần: tính tiền, chuyển trạng thái, mã sản phẩm, mã đơn, số điện thoại
+  server/services/     nghiệp vụ, mỗi thao tác ghi là một transaction
+  server/actions/      server action: kiểm đăng nhập + Zod, rồi gọi service
+  components/admin/    giao diện quản trị
+  components/catalog/  giao diện trang khách
+  lib/                 ngày giờ (Asia/Ho_Chi_Minh), định dạng tiền, nhãn tiếng Việt
+prisma/                schema, migrations (có SQL viết tay cho CHECK và RLS), seed, import
+tests/                 domain/ (thuần) và integration/ (Postgres)
 ```
 
-Quy tắc: chỉ `inventory.service.applyMovement` được thay đổi `on_hand`/`reserved`, luôn kèm một dòng `inventory_movements` trong cùng transaction.
+Quy tắc chính:
+
+- Mã sản phẩm tự sinh theo tiền tố danh mục (`BO-055`), lấy số từ bảng `product_code_counters`, không bao giờ đổi.
+- Mỗi dòng đơn lưu mã, tên và giá lúc đặt. Sửa đơn chỉ đổi số lượng và ghi chú của dòng cũ, không tính lại giá.
+- "Cần làm", "Tiền cần thu" và Tổng hợp cần làm chỉ tính đơn **Mới**.
 
 ## Đưa lên mạng
 

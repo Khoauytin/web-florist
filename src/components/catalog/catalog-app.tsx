@@ -1,0 +1,404 @@
+"use client";
+
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+export interface CatalogCategory {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface CatalogProduct {
+  code: string;
+  name: string;
+  price: number | null;
+  size: string | null;
+  color: string | null;
+  description: string | null;
+  images: string[];
+  categoryId: string;
+}
+
+export interface ShopLinks {
+  name: string;
+  phone: string | null;
+  zalo: string | null;
+  facebook: string | null;
+  messenger: string | null;
+  tiktok: string | null;
+}
+
+const money = (n: number) => n.toLocaleString("vi-VN") + "đ";
+const priceText = (p: CatalogProduct) => (p.price ? money(p.price) : "Liên hệ báo giá");
+const slugOf = (p: CatalogProduct) => p.code.toLowerCase();
+const orderMessage = (p: CatalogProduct) => `Mình muốn đặt mẫu ${p.code} · ${p.name}${p.price ? ` (${money(p.price)})` : ""}`;
+
+const CONTACT_LOGOS = {
+  phone: "/contact-icons/phone.png",
+  zalo: "/contact-icons/zalo-transparent.png",
+  facebook: "/contact-icons/facebook.png",
+  tiktok: "/contact-icons/tiktok.png",
+  order: "/contact-icons/order-chat.png",
+} as const;
+type ContactLogoKind = keyof typeof CONTACT_LOGOS;
+
+const ContactLogo = ({ kind }: { kind: ContactLogoKind }) => (
+  <span className={`contact-logo-frame contact-logo-frame--${kind}`} aria-hidden="true">
+    <Image className={`contact-logo contact-logo--${kind}`} src={CONTACT_LOGOS[kind]} alt="" width={32} height={32} loading="eager" />
+  </span>
+);
+
+type LinkKind = "phone" | "zalo" | "facebook" | "messenger" | "tiktok";
+const missingLabel: Record<LinkKind, string> = { phone: "số điện thoại", zalo: "Zalo", facebook: "Facebook", messenger: "Facebook", tiktok: "TikTok" };
+const linkFor = (shop: ShopLinks, kind: LinkKind) => (kind === "phone" ? (shop.phone ? `tel:${shop.phone}` : null) : shop[kind]);
+
+interface ContactProps {
+  shop: ShopLinks;
+  kind: "phone" | "zalo" | "facebook" | "tiktok";
+  label: string;
+  main?: boolean;
+  onMissing: (msg: string) => void;
+}
+
+/** Link to a contact channel; a channel the owner has not set yet shows a toast instead. */
+function Contact({ shop, kind, label, main, onMissing }: ContactProps) {
+  const href = linkFor(shop, kind);
+  const cls = main ? "contact-btn is-main" : "contact-btn";
+  if (!href)
+    return (
+      <button className={cls} type="button" onClick={() => onMissing(`Shop chưa cập nhật ${missingLabel[kind]}`)}>
+        <ContactLogo kind={kind} />
+        {label}
+      </button>
+    );
+  return (
+    <a className={cls} href={href} {...(kind === "phone" ? {} : { target: "_blank", rel: "noopener" })}>
+      <ContactLogo kind={kind} />
+      {label}
+    </a>
+  );
+}
+
+export function CatalogApp({ categories, products, shop }: { categories: CatalogCategory[]; products: CatalogProduct[]; shop: ShopLinks }) {
+  const [active, setActive] = useState("all");
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState<CatalogProduct | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const catById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const bySlug = useCallback((slug: string) => products.find((p) => slugOf(p) === slug) ?? null, [products]);
+
+  const toast = (msg: string) => {
+    setToastMsg(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMsg(null), 2400);
+  };
+
+  const term = q.trim().toLowerCase();
+  const list = products.filter((p) => (active === "all" || p.categoryId === active) && (!term || p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)));
+
+  // Each product has its own link (#bo-012): the phone's Back button closes the sheet.
+  useEffect(() => {
+    const sync = () => {
+      let slug = "";
+      try {
+        slug = decodeURIComponent(location.hash.slice(1));
+      } catch {
+        // malformed hash: show the list
+      }
+      const p = bySlug(slug);
+      setOpen(p);
+      setPicking(false);
+    };
+    sync();
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, [bySlug]);
+
+  const openProduct = (p: CatalogProduct) => {
+    history.pushState({ sheet: slugOf(p) }, "", "#" + slugOf(p));
+    setPicking(false);
+    setOpen(p);
+  };
+  const closeSheet = () => {
+    if (history.state?.sheet) history.back();
+    else {
+      history.replaceState(null, "", location.pathname + location.search);
+      setOpen(null);
+    }
+  };
+
+  // The copy starts inside the tap itself and the chat opens through a real link, so phone
+  // browsers (iOS Safari, in-app browsers) neither block the clipboard nor the new tab.
+  const copyOrder = (kind: "messenger" | "zalo" | "tiktok") => {
+    if (!open) return;
+    const msg = orderMessage(open);
+    const done = linkFor(shop, kind) ? "Đã sao chép tin nhắn, dán vào khung chat để gửi" : `Đã sao chép tin nhắn. Shop chưa cập nhật ${missingLabel[kind]}.`;
+    if (!navigator.clipboard) return toast(msg);
+    navigator.clipboard.writeText(msg).then(
+      () => toast(done),
+      () => toast(msg),
+    );
+  };
+  const orderLink = (kind: "messenger" | "zalo" | "tiktok", label: string) => {
+    const url = linkFor(shop, kind);
+    const logo = kind === "messenger" ? "facebook" : kind;
+    return url ? (
+      <a className="contact-btn" href={url} target="_blank" rel="noopener" onClick={() => copyOrder(kind)}>
+        <ContactLogo kind={logo} />
+        {label}
+      </a>
+    ) : (
+      <button className="contact-btn" type="button" onClick={() => copyOrder(kind)}>
+        <ContactLogo kind={logo} />
+        {label}
+      </button>
+    );
+  };
+  const toastEl = (
+    <div className={toastMsg ? "toast show" : "toast"} role="status" aria-live="polite">
+      {toastMsg}
+    </div>
+  );
+
+  return (
+    <>
+      <header className="hero">
+        <div className="hero-copy">
+          <h1>
+            {shop.name.replace(/\s*Florist$/i, "")} <em>Florist</em>
+          </h1>
+          <p className="hero-slogan">Hoa lụa, hoa sáp handmade cao cấp</p>
+          <a className="hero-cta" href="#mau-hoa">
+            Xem mẫu hoa
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 5v14M6 13l6 6 6-6" />
+            </svg>
+          </a>
+        </div>
+        <div className="hero-photo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/hero.webp" alt="Bó hoa nhiều màu giơ lên giữa trời xanh" width={2000} height={1408} fetchPriority="high" />
+        </div>
+      </header>
+
+      <main>
+        <section className="intro" aria-label="Giới thiệu">
+          <p>{shop.name} là tiệm hoa handmade tại Hà Nội, chuyên hoa lụa và hoa sáp được kết thủ công bằng tay.</p>
+          <p>Hoa giữ dáng, giữ màu lâu và không cần tưới nước, hợp để tặng hoặc trang trí. Bạn xem mẫu bên dưới, thích mẫu nào thì bấm Đặt mẫu này để nhắn shop.</p>
+        </section>
+
+        <div className="tabs-wrap" id="mau-hoa">
+          <div className="tabs" role="tablist" aria-label="Dòng sản phẩm">
+            {[{ id: "all", name: "Tất cả", color: "#8DBDE3" }, ...categories].map((c) => (
+              <button
+                key={c.id}
+                className="tab"
+                role="tab"
+                type="button"
+                aria-controls="catalog"
+                aria-selected={active === c.id}
+                style={{ "--c": c.color } as React.CSSProperties}
+                onClick={() => setActive(c.id)}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+          <div className="search-wrap">
+            <label className="search">
+              <span className="sr">Tìm mẫu hoa</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+              <input type="search" placeholder="Tìm mẫu theo tên hoặc mã" enterKeyHint="search" value={q} onChange={(e) => setQ(e.target.value)} />
+            </label>
+          </div>
+        </div>
+
+        <section className="catalog" id="catalog" role="tabpanel" aria-live="polite">
+          <p className="catalog-hint">
+            {list.length ? `${list.length} mẫu · Chạm vào mẫu để xem thêm ảnh` : term ? "Không tìm thấy mẫu phù hợp. Thử từ khác hoặc nhắn shop nhé." : "Dòng này chưa có mẫu. Bạn nhắn shop để xem các mẫu mới nhất nhé."}
+          </p>
+          <ul className="grid">
+            {list.map((p, i) => (
+              <li key={p.code} style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}>
+                <button className="card" type="button" style={{ "--c": catById.get(p.categoryId)?.color } as React.CSSProperties} onClick={() => openProduct(p)}>
+                  <span className="card-photo">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {p.images[0] ? <img src={p.images[0]} alt="" loading="lazy" /> : null}
+                  </span>
+                  <span className="card-name">{p.name}</span>
+                  <span className="card-price">{priceText(p)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </main>
+
+      <footer className="foot">
+        <p className="foot-name">{shop.name}</p>
+        <p>Hoa lụa, hoa sáp handmade cao cấp · Hà Nội</p>
+      </footer>
+
+      <nav className="contact-bar" aria-label="Liên hệ shop">
+        <Contact shop={shop} onMissing={toast} kind="phone" label="Gọi" main />
+        <Contact shop={shop} onMissing={toast} kind="zalo" label="Zalo" />
+        <Contact shop={shop} onMissing={toast} kind="facebook" label="Facebook" />
+        <Contact shop={shop} onMissing={toast} kind="tiktok" label="TikTok" />
+      </nav>
+
+      <ProductSheet product={open} category={open ? catById.get(open.categoryId) : undefined} onClose={closeSheet} toast={open ? toastEl : null}>
+        {open ? (
+          picking ? (
+            <div className="order-pick">
+              <p>Chọn cách liên hệ. Tin nhắn đặt mẫu sẽ được sao chép sẵn, bạn chỉ cần dán vào khung chat và gửi.</p>
+              <div className="grid4">
+                {orderLink("messenger", "Facebook")}
+                {orderLink("zalo", "Zalo")}
+                {orderLink("tiktok", "TikTok")}
+                <Contact shop={shop} onMissing={toast} kind="phone" label="Gọi điện" main />
+              </div>
+              <button className="back-link" type="button" onClick={() => setPicking(false)}>
+                Quay lại
+              </button>
+            </div>
+          ) : (
+            <button className="contact-btn is-main" type="button" onClick={() => setPicking(true)}>
+              <ContactLogo kind="order" />
+              Đặt mẫu này
+            </button>
+          )
+        ) : null}
+      </ProductSheet>
+
+      {/* A modal dialog sits in the top layer, so while it is open the toast must live inside it. */}
+      {open ? null : toastEl}
+    </>
+  );
+}
+
+/** Bottom sheet (dialog) with gallery, specs and the action area. */
+function ProductSheet({ product, category, onClose, toast, children }: { product: CatalogProduct | null; category?: CatalogCategory; onClose: () => void; toast: React.ReactNode; children: React.ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const gallery = useRef<HTMLDivElement>(null);
+  // Keep the last product rendered while the sheet animates closed.
+  const [shown, setShown] = useState<CatalogProduct | null>(product);
+  const [slide, setSlide] = useState(0);
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  if (product && product !== shown) {
+    setShown(product);
+    setSlide(0);
+  }
+
+  useEffect(() => {
+    const d = ref.current!;
+    clearTimeout(closeTimer.current);
+    if (product) {
+      if (!d.open) {
+        d.showModal();
+        d.focus();
+      }
+      document.documentElement.classList.add("sheet-open");
+      requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add("is-open")));
+    } else if (d.open) {
+      d.classList.remove("is-open");
+      document.documentElement.classList.remove("sheet-open");
+      closeTimer.current = setTimeout(() => d.close(), 340);
+    }
+  }, [product]);
+
+  const p = product ?? shown;
+  const specs = p ? ([["Kích thước", p.size], ["Màu sắc", p.color]] as const).filter((s) => s[1]) : [];
+  return (
+    <dialog
+      ref={ref}
+      className="sheet"
+      aria-labelledby="sheet-title"
+      tabIndex={-1}
+      style={{ "--c": category?.color } as React.CSSProperties}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="sheet-grab">
+        <button className="sheet-close" type="button" aria-label="Đóng" onClick={onClose}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      {p ? (
+        <>
+          <div className="sheet-body">
+            <div className="sheet-view">
+              <div>
+                <div
+                  className="gallery"
+                  ref={gallery}
+                  tabIndex={0}
+                  aria-label="Ảnh sản phẩm, vuốt ngang để xem thêm"
+                  onScroll={(e) => {
+                    const g = e.currentTarget;
+                    const items = [...g.children] as HTMLElement[];
+                    if (!items.length) return;
+                    const x = g.scrollLeft + items[0].offsetLeft;
+                    let nearest = 0;
+                    items.forEach((el, i) => {
+                      if (Math.abs(el.offsetLeft - x) < Math.abs(items[nearest].offsetLeft - x)) nearest = i;
+                    });
+                    if (g.scrollLeft + g.clientWidth >= g.scrollWidth - 2) nearest = items.length - 1;
+                    setSlide(nearest);
+                  }}
+                >
+                  {(p.images.length ? p.images : [null]).map((src, i) => (
+                    <div className="slide" key={src ?? i}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {src ? <img src={src} alt={`${p.name}, ảnh ${i + 1}`} /> : null}
+                    </div>
+                  ))}
+                </div>
+                {p.images.length > 1 ? (
+                  <div className="dots" aria-hidden="true">
+                    {p.images.map((src, i) => (
+                      <i key={src} className={i === slide ? "on" : undefined} />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <div className="info">
+                <span className="info-cat">{category?.name}</span>
+                <h2 id="sheet-title">{p.name}</h2>
+                <p className="info-code">Mã mẫu {p.code}</p>
+                <p className="info-price">{priceText(p)}</p>
+                {specs.length ? (
+                  <dl className="specs">
+                    {specs.map(([k, v]) => (
+                      <div key={k}>
+                        <dt>{k}</dt>
+                        <dd>{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : null}
+                {p.description ? <p className="info-note">{p.description}</p> : null}
+              </div>
+            </div>
+          </div>
+          <div className="sheet-actions" style={{ gridTemplateColumns: "1fr" }}>
+            {children}
+          </div>
+        </>
+      ) : null}
+      {toast}
+    </dialog>
+  );
+}

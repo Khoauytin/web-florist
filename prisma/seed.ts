@@ -1,12 +1,17 @@
 /**
- * Creates the first owner account (from SEED_OWNER_* in .env) and the default categories.
- * Safe to run again: existing records are left untouched.
+ * Creates the owner account (from SEED_OWNER_* in .env), the default categories with their code
+ * prefixes, and the shop settings row. Safe to run again: existing records are left untouched.
  */
 import "dotenv/config";
 import { auth, placeholderEmail } from "../src/server/auth/auth";
 import { prisma } from "../src/server/db/prisma";
 
-const DEFAULT_CATEGORIES = ["Hoa bó", "Hoa hộp", "Hoa giỏ", "Hoa lồng đèn"];
+const DEFAULT_CATEGORIES = [
+  { name: "Hoa bó", codePrefix: "BO" },
+  { name: "Hoa hộp", codePrefix: "HOP" },
+  { name: "Hoa giỏ", codePrefix: "GIO" },
+  { name: "Hoa lồng đèn", codePrefix: "LD" },
+];
 
 async function main() {
   const username = (process.env.SEED_OWNER_USERNAME ?? "").trim().toLowerCase();
@@ -15,20 +20,14 @@ async function main() {
   if (!/^[a-z0-9._]{3,30}$/.test(username)) throw new Error("SEED_OWNER_USERNAME must be 3-30 chars of a-z, 0-9, . or _");
   if (password.length < 8) throw new Error("SEED_OWNER_PASSWORD must be at least 8 characters");
 
-  const existing = await prisma.user.findUnique({ where: { username } });
-  if (existing) {
+  if (await prisma.user.findUnique({ where: { username } })) {
     console.log(`Owner "${username}" already exists, skipping.`);
   } else {
     const ctx = await auth.$context;
-    const user = await ctx.internalAdapter.createUser({
-      email: placeholderEmail(username),
-      name,
-      emailVerified: true,
-      username,
-      displayUsername: username,
-      role: "owner",
-      mustChangePassword: false,
-    }, { method: "admin" });
+    const user = await ctx.internalAdapter.createUser(
+      { email: placeholderEmail(username), name, emailVerified: true, username, displayUsername: username },
+      { method: "admin" },
+    );
     await ctx.internalAdapter.linkAccount({
       userId: user.id,
       providerId: "credential",
@@ -38,10 +37,15 @@ async function main() {
     console.log(`Created owner "${username}".`);
   }
 
-  for (const [i, cat] of DEFAULT_CATEGORIES.entries()) {
-    await prisma.category.upsert({ where: { name: cat }, update: {}, create: { name: cat, sortOrder: i + 1 } });
+  for (const [i, c] of DEFAULT_CATEGORIES.entries()) {
+    await prisma.category.upsert({ where: { name: c.name }, update: {}, create: { ...c, sortOrder: i + 1 } });
   }
-  console.log(`Categories: ${DEFAULT_CATEGORIES.join(", ")}`);
+  await prisma.shopSettings.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, facebookUrl: "https://www.facebook.com/BichNgocFlorist", messengerUrl: "https://m.me/BichNgocFlorist" },
+  });
+  console.log(`Categories: ${DEFAULT_CATEGORIES.map((c) => `${c.name} (${c.codePrefix})`).join(", ")}`);
 }
 
 main()

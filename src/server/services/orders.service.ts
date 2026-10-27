@@ -1,40 +1,21 @@
-import type {
-  OrderChannel,
-  OrderStatus,
-  PaymentMethod,
-  PaymentType,
-  Prisma,
-  ReceiveType,
-} from "@/generated/prisma/client";
-import { prisma, lockOrder, lockProducts, type Tx } from "@/server/db/prisma";
-import { AppError, ForbiddenError, NotFoundError } from "@/server/errors";
-import { allocate, type AllocationProduct } from "@/server/domain/allocate";
-import { computeTotals, netPaid, paymentState, TotalsError } from "@/server/domain/order-totals";
-import {
-  ACTIVE_STATUSES,
-  canPerform,
-  productionState,
-  remainingToMake,
-  type OrderAction,
-} from "@/server/domain/order-status";
+import { Prisma, type OrderChannel, type OrderStatus, type ReceiveType } from "@/generated/prisma/client";
+import { prisma, lockOrder, type Tx } from "@/server/db/prisma";
+import { AppError, NotFoundError } from "@/server/errors";
+import { MoneyError, computeMoney, remaining } from "@/server/domain/order-totals";
+import { canDelete, moveStatus, type StatusMove } from "@/server/domain/order-status";
 import { formatOrderCode } from "@/server/domain/order-code";
 import { normalizePhone } from "@/server/domain/phone";
-import { applyMovement } from "@/server/services/inventory.service";
-import { audit } from "@/server/services/audit.service";
-import { todayVn, vnDayRange, ymdToDbDate, type Ymd } from "@/lib/dates";
+import { addDays, isYmd, todayVn, ymdToDbDate, type Ymd } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
-import type { CurrentUser } from "@/server/auth/session";
 
 // ===== Inputs =====
 
 export interface OrderItemInput {
-  /** existing order_items.id when editing; omitted for new lines */
+  /** existing order line when editing; its name/price snapshot is kept */
   id?: string | null;
-  productId?: string | null;
-  /** free-text line only */
-  name?: string;
-  /** free-text line only */
-  unitPrice?: number;
+  productId: string;
+  /** quoted price for a new catalog item that has no listed price */
+  unitPrice?: number | null;
   qty: number;
   note?: string;
 }
@@ -49,35 +30,17 @@ export interface OrderInput {
   channel: OrderChannel;
   receiveType: ReceiveType;
   deliveryAddress?: string;
-  deliveryDate?: Ymd | null;
+  deliveryDate: Ymd;
   deliveryTimeFrom?: string | null;
   deliveryTimeTo?: string | null;
   courierName?: string;
-  discount: number;
   shippingFee: number;
+  discount: number;
+  deposit: number;
   cardMessage?: string;
   note?: string;
-  deposit?: { amount: number; method: PaymentMethod } | null;
   items: OrderItemInput[];
 }
-
-export interface LogisticsInput {
-  recipientName: string;
-  recipientPhone: string;
-  receiveType: ReceiveType;
-  deliveryAddress?: string;
-  deliveryDate?: Ymd | null;
-  deliveryTimeFrom?: string | null;
-  deliveryTimeTo?: string | null;
-  courierName?: string;
-  cardMessage?: string;
-  note?: string;
-  /** owner only, ignored for staff */
-  discount?: number;
-  shippingFee?: number;
-}
-
-export type Resolution = "RESTOCK" | "WRITE_OFF";
 
 const blank = (s?: string | null) => (s && s.trim() ? s.trim() : null);
 
@@ -87,18 +50,32 @@ function requirePhone(raw: string, field: string) {
   return phone;
 }
 
-function checkTimes(from?: string | null, to?: string | null) {
+function logistics(input: OrderInput) {
+  if (!isYmd(input.deliveryDate)) throw new AppError("Vui lòng chọn ngày giao.", { deliveryDate: "Bắt buộc" });
   const re = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const from = input.deliveryTimeFrom || null;
+  const to = input.deliveryTimeTo || null;
   if (from && !re.test(from)) throw new AppError("Giờ giao không hợp lệ.", { deliveryTimeFrom: "Giờ không hợp lệ" });
   if (to && !re.test(to)) throw new AppError("Giờ giao không hợp lệ.", { deliveryTimeTo: "Giờ không hợp lệ" });
   if (from && to && to < from) throw new AppError("Giờ kết thúc phải sau giờ bắt đầu.", { deliveryTimeTo: "Phải sau giờ bắt đầu" });
+  return {
+    channel: input.channel,
+    receiveType: input.receiveType,
+    deliveryAddress: input.receiveType === "DELIVERY" ? blank(input.deliveryAddress) : null,
+    deliveryDate: ymdToDbDate(input.deliveryDate),
+    deliveryTimeFrom: from,
+    deliveryTimeTo: to,
+    courierName: input.receiveType === "DELIVERY" ? blank(input.courierName) : null,
+    cardMessage: blank(input.cardMessage),
+    note: blank(input.note),
+  };
 }
 
-function totalsOrThrow(lines: { unitPrice: number; qty: number }[], discount: number, shippingFee: number) {
+function money(lines: { unitPrice: number; qty: number }[], input: OrderInput) {
   try {
-    return computeTotals(lines, discount, shippingFee);
+    return computeMoney(lines, input.discount, input.shippingFee, input.deposit);
   } catch (e) {
-    if (e instanceof TotalsError) throw new AppError(e.message, { discount: e.message });
+    if (e instanceof MoneyError) throw new AppError(e.message, { [e.field]: e.message });
     throw e;
   }
 }
@@ -112,702 +89,344 @@ async function nextOrderCode(tx: Tx): Promise<string> {
   return formatOrderCode(day, rows[0].last_seq);
 }
 
-/** Find by normalized phone or create. Keeps an existing customer's name; fills an empty address. */
-async function resolveCustomer(tx: Tx, actor: CurrentUser, input: OrderInput) {
-  const phone = requirePhone(input.customerPhone, "customerPhone");
-  const name = blank(input.customerName);
+/** Find by normalized phone or create (insert-or-ignore, safe when two orders arrive together). */
+async function resolveCustomer(tx: Tx, input: OrderInput) {
   if (input.customerId) {
     const c = await tx.customer.findUnique({ where: { id: input.customerId } });
     if (!c) throw new NotFoundError("Không tìm thấy khách hàng.");
-    return c;
+    // The id comes from a phone lookup in the form; trust it only if the typed phone still matches.
+    if (!input.customerPhone?.trim() || normalizePhone(input.customerPhone) === c.phone) return c;
   }
+  const phone = requirePhone(input.customerPhone, "customerPhone");
+  const name = blank(input.customerName);
   const existing = await tx.customer.findUnique({ where: { phone } });
   if (existing) {
     if (!existing.address && blank(input.customerAddress)) {
-      return tx.customer.update({ where: { id: existing.id }, data: { address: blank(input.customerAddress), updatedById: actor.id } });
+      return tx.customer.update({ where: { id: existing.id }, data: { address: blank(input.customerAddress) } });
     }
     return existing;
   }
   if (!name) throw new AppError("Vui lòng nhập tên khách hàng.", { customerName: "Bắt buộc" });
-  // Two orders for the same new phone can arrive together: insert-or-ignore, then read back.
-  const inserted = await tx.$queryRaw<{ id: string }[]>`
-    INSERT INTO customers (id, name, phone, address, created_by, updated_by, created_at, updated_at)
-    VALUES (gen_random_uuid(), ${name}, ${phone}, ${blank(input.customerAddress)}, ${actor.id}, ${actor.id}, now(), now())
-    ON CONFLICT (phone) DO NOTHING
-    RETURNING id`;
-  const customer = await tx.customer.findUniqueOrThrow({ where: { phone } });
-  if (inserted.length) {
-    await audit(tx, { actorId: actor.id, action: "customer.create", entityType: "customer", entityId: customer.id, summary: `Tạo khách ${name} khi tạo đơn` });
-  }
-  return customer;
+  await tx.$executeRaw`
+    INSERT INTO customers (id, name, phone, address, created_at, updated_at)
+    VALUES (gen_random_uuid(), ${name}, ${phone}, ${blank(input.customerAddress)}, now(), now())
+    ON CONFLICT (phone) DO NOTHING`;
+  return tx.customer.findUniqueOrThrow({ where: { phone } });
 }
 
-/** Builds item rows with name/price snapshots. Only ACTIVE products with a price can be ordered. */
-async function buildItems(tx: Tx, items: OrderItemInput[]) {
-  if (items.length > 50) throw new AppError("Một đơn tối đa 50 dòng.");
-  const ids = items.map((i) => i.productId).filter((x): x is string => Boolean(x));
-  const products = await tx.product.findMany({ where: { id: { in: ids } } });
+/** Snapshots for new lines. Hidden and unpriced products can be ordered; archived ones cannot. */
+async function snapshotNewLines(tx: Tx, items: OrderItemInput[]) {
+  const products = await tx.product.findMany({ where: { id: { in: items.map((i) => i.productId) } } });
   const byId = new Map(products.map((p) => [p.id, p]));
-  return items.map((item, index) => {
-    if (!Number.isInteger(item.qty) || item.qty <= 0 || item.qty > 10000) {
-      throw new AppError("Số lượng phải là số nguyên từ 1 đến 10000.", { [`items.${index}.qty`]: "Không hợp lệ" });
-    }
-    if (item.productId) {
-      const p = byId.get(item.productId);
-      if (!p) throw new AppError("Có sản phẩm không còn tồn tại.");
-      if (p.status !== "ACTIVE") throw new AppError(`Sản phẩm "${p.name}" đang không bán.`);
-      if (p.price === null) throw new AppError(`Sản phẩm "${p.name}" chưa có giá. Chủ shop cần nhập giá trước.`);
-      return {
-        productId: p.id,
-        productCodeSnapshot: p.code,
-        nameSnapshot: p.name,
-        unitPriceSnapshot: p.price,
-        unitCostSnapshot: p.costPrice,
-        qtyOrdered: item.qty,
-        note: blank(item.note),
-        sortOrder: index,
-      };
-    }
-    const name = blank(item.name);
-    if (!name) throw new AppError("Dòng tự do cần có tên.", { [`items.${index}.name`]: "Bắt buộc" });
-    const price = item.unitPrice ?? -1;
-    if (!Number.isInteger(price) || price < 0) throw new AppError("Dòng tự do cần đơn giá hợp lệ.", { [`items.${index}.unitPrice`]: "Không hợp lệ" });
-    return {
-      productId: null,
-      productCodeSnapshot: null,
-      nameSnapshot: name,
-      unitPriceSnapshot: price,
-      unitCostSnapshot: null,
-      qtyOrdered: item.qty,
-      note: blank(item.note),
-      sortOrder: index,
-    };
+  return items.map((item) => {
+    const p = byId.get(item.productId);
+    if (!p || p.isArchived) throw new AppError("Có mẫu không còn bán. Hãy xóa dòng đó khỏi đơn.");
+    const unitPrice = item.unitPrice ?? p.price;
+    if (unitPrice === null || unitPrice === undefined) throw new AppError(`Vui lòng nhập đơn giá cho mẫu "${p.name}".`, { items: `Nhập đơn giá cho "${p.name}"` });
+    if (!Number.isInteger(unitPrice) || unitPrice < 0 || unitPrice > 2_000_000_000) throw new AppError(`Đơn giá của mẫu "${p.name}" không hợp lệ.`, { items: "Đơn giá không hợp lệ" });
+    return { productId: p.id, productCodeSnapshot: p.code, nameSnapshot: p.name, unitPriceSnapshot: unitPrice, qty: item.qty, note: blank(item.note) };
   });
 }
 
-function logisticsData(input: {
-  receiveType: ReceiveType;
-  deliveryAddress?: string;
-  deliveryDate?: Ymd | null;
-  deliveryTimeFrom?: string | null;
-  deliveryTimeTo?: string | null;
-  courierName?: string;
-  cardMessage?: string;
-  note?: string;
-}) {
-  checkTimes(input.deliveryTimeFrom, input.deliveryTimeTo);
-  return {
-    receiveType: input.receiveType,
-    deliveryAddress: input.receiveType === "DELIVERY" ? blank(input.deliveryAddress) : null,
-    deliveryDate: input.deliveryDate ? ymdToDbDate(input.deliveryDate) : null,
-    deliveryTimeFrom: input.deliveryTimeFrom || null,
-    deliveryTimeTo: input.deliveryTimeTo || null,
-    courierName: blank(input.courierName),
-    cardMessage: blank(input.cardMessage),
-    note: blank(input.note),
-  };
+function checkItems(items: OrderItemInput[]) {
+  if (!items.length) throw new AppError("Đơn hàng cần ít nhất một mẫu.", { items: "Chưa có mẫu nào" });
+  if (items.length > 50) throw new AppError("Một đơn tối đa 50 dòng.");
+  for (const i of items) {
+    if (!Number.isInteger(i.qty) || i.qty <= 0 || i.qty > 10000) throw new AppError("Số lượng phải là số nguyên từ 1 đến 10000.", { items: "Số lượng không hợp lệ" });
+    if (i.unitPrice !== undefined && i.unitPrice !== null && (!Number.isInteger(i.unitPrice) || i.unitPrice < 0 || i.unitPrice > 2_000_000_000)) {
+      throw new AppError("Đơn giá không hợp lệ.", { items: "Đơn giá không hợp lệ" });
+    }
+  }
 }
 
 // ===== Create / update =====
 
-export async function createOrder(actor: CurrentUser, input: OrderInput): Promise<{ id: string; code: string }> {
-  if (!input.items.length) throw new AppError("Đơn hàng cần ít nhất một sản phẩm.", { items: "Chưa có sản phẩm" });
+export async function createOrder(input: OrderInput): Promise<{ id: string; code: string }> {
+  checkItems(input.items);
   return prisma.$transaction(async (tx) => {
-    const customer = await resolveCustomer(tx, actor, input);
-    const items = await buildItems(tx, input.items);
-    const totals = totalsOrThrow(items.map((i) => ({ unitPrice: i.unitPriceSnapshot, qty: i.qtyOrdered })), input.discount, input.shippingFee);
-    const recipientPhone = input.recipientPhone ? requirePhone(input.recipientPhone, "recipientPhone") : customer.phone;
+    const customer = await resolveCustomer(tx, input);
+    const lines = await snapshotNewLines(tx, input.items);
+    const m = money(lines.map((l) => ({ unitPrice: l.unitPriceSnapshot, qty: l.qty })), input);
     const code = await nextOrderCode(tx);
     const order = await tx.order.create({
       data: {
         code,
         customerId: customer.id,
         recipientName: blank(input.recipientName) ?? customer.name,
-        recipientPhone,
-        channel: input.channel,
-        ...logisticsData(input),
-        ...totals,
-        createdById: actor.id,
-        updatedById: actor.id,
-        items: { create: items },
+        recipientPhone: input.recipientPhone ? requirePhone(input.recipientPhone, "recipientPhone") : customer.phone,
+        ...logistics(input),
+        ...m,
+        items: { create: lines.map((l, i) => ({ ...l, sortOrder: i })) },
       },
-    });
-    if (input.deposit && input.deposit.amount > 0) {
-      if (!Number.isInteger(input.deposit.amount) || input.deposit.amount > totals.total) {
-        throw new AppError("Tiền cọc không được lớn hơn tổng tiền.", { depositAmount: "Lớn hơn tổng tiền" });
-      }
-      await tx.payment.create({
-        data: { orderId: order.id, type: "DEPOSIT", amount: input.deposit.amount, method: input.deposit.method, createdById: actor.id },
-      });
-    }
-    await audit(tx, {
-      actorId: actor.id,
-      action: "order.create",
-      entityType: "order",
-      entityId: order.id,
-      summary: `Tạo đơn ${code} cho ${customer.name}, tổng ${formatMoney(totals.total)}${input.deposit?.amount ? `, cọc ${formatMoney(input.deposit.amount)}` : ""}`,
     });
     return { id: order.id, code };
   });
 }
 
-async function loadPaid(tx: Tx, orderId: string) {
-  const payments = await tx.payment.findMany({ where: { orderId }, select: { type: true, amount: true, voidedAt: true } });
-  return netPaid(payments);
-}
-
 /**
- * Full edit, only while the order is NEW (no stock held yet). Lines are updated in place:
- * existing product lines keep their name/price snapshot (only quantity and note change), new lines
- * are snapshotted at today's price, and removed lines are deleted.
+ * Edit everything except a cancelled order (restore it first). Existing lines keep their name and
+ * price snapshot; only quantity and note change. New lines are priced today; removed lines go.
  */
-export async function updateOrderFull(actor: CurrentUser, orderId: string, input: OrderInput) {
+export async function updateOrder(orderId: string, input: OrderInput) {
+  checkItems(input.items);
   return prisma.$transaction(async (tx) => {
     await lockOrder(tx, orderId);
     const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
     if (!order) throw new NotFoundError("Không tìm thấy đơn.");
-    if (order.status !== "NEW") throw new AppError("Chỉ sửa toàn bộ được đơn ở trạng thái Mới. Hủy xác nhận trước khi đổi sản phẩm.");
-    if (!input.items.length) throw new AppError("Đơn hàng cần ít nhất một sản phẩm.", { items: "Chưa có sản phẩm" });
-    if (input.items.length > 50) throw new AppError("Một đơn tối đa 50 dòng.");
-    const customer = await resolveCustomer(tx, actor, input);
+    if (order.status === "CANCELLED") throw new AppError("Đơn đã hủy. Khôi phục đơn trước khi sửa.");
+    const customer = await resolveCustomer(tx, input);
     const existing = new Map(order.items.map((i) => [i.id, i]));
-    const fresh = input.items.map((item, index) => ({ item, index })).filter(({ item }) => !item.id || !existing.has(item.id));
-    const built = await buildItems(tx, fresh.map((f) => f.item));
+    const fresh = input.items.filter((i) => !i.id || !existing.has(i.id));
+    const freshLines = await snapshotNewLines(tx, fresh);
     const lines = input.items.map((item, index) => {
       const old = item.id ? existing.get(item.id) : undefined;
-      if (!old) return { kind: "new" as const, data: { ...built[fresh.findIndex((f) => f.index === index)], sortOrder: index } };
-      if (!Number.isInteger(item.qty) || item.qty <= 0 || item.qty > 10000) throw new AppError("Số lượng phải là số nguyên từ 1 đến 10000.");
-      if (old.productId) {
-        return { kind: "keep" as const, id: old.id, data: { qtyOrdered: item.qty, note: blank(item.note), sortOrder: index }, unitPrice: old.unitPriceSnapshot };
-      }
-      const name = blank(item.name) ?? old.nameSnapshot;
-      const price = item.unitPrice ?? old.unitPriceSnapshot;
-      if (!Number.isInteger(price) || price < 0) throw new AppError("Dòng tự do cần đơn giá hợp lệ.");
-      return { kind: "keep" as const, id: old.id, data: { nameSnapshot: name, unitPriceSnapshot: price, qtyOrdered: item.qty, note: blank(item.note), sortOrder: index }, unitPrice: price };
+      if (old) return { kind: "keep" as const, id: old.id, unitPrice: old.unitPriceSnapshot, data: { qty: item.qty, note: blank(item.note), sortOrder: index } };
+      return { kind: "new" as const, data: { ...freshLines[fresh.indexOf(item)], sortOrder: index } };
     });
-    const totals = totalsOrThrow(
-      lines.map((l) => (l.kind === "new" ? { unitPrice: l.data.unitPriceSnapshot, qty: l.data.qtyOrdered } : { unitPrice: l.unitPrice, qty: l.data.qtyOrdered })),
-      input.discount,
-      input.shippingFee,
-    );
-    const paid = await loadPaid(tx, orderId);
-    if (totals.total < paid) throw new AppError(`Tổng tiền mới (${formatMoney(totals.total)}) nhỏ hơn số đã thu (${formatMoney(paid)}). Hoàn tiền trước.`);
-    const keepIds = new Set(lines.flatMap((l) => (l.kind === "keep" ? [l.id] : [])));
-    await tx.orderItem.deleteMany({ where: { orderId, id: { notIn: [...keepIds] } } });
-    for (const l of lines) {
-      if (l.kind === "keep") await tx.orderItem.update({ where: { id: l.id }, data: l.data });
-    }
+    const m = money(lines.map((l) => (l.kind === "keep" ? { unitPrice: l.unitPrice, qty: l.data.qty } : { unitPrice: l.data.unitPriceSnapshot, qty: l.data.qty })), input);
+    const keep = lines.flatMap((l) => (l.kind === "keep" ? [l.id] : []));
+    await tx.orderItem.deleteMany({ where: { orderId, id: { notIn: keep } } });
+    for (const l of lines) if (l.kind === "keep") await tx.orderItem.update({ where: { id: l.id }, data: l.data });
     await tx.order.update({
       where: { id: orderId },
       data: {
         customerId: customer.id,
         recipientName: blank(input.recipientName) ?? customer.name,
         recipientPhone: input.recipientPhone ? requirePhone(input.recipientPhone, "recipientPhone") : customer.phone,
-        channel: input.channel,
-        ...logisticsData(input),
-        ...totals,
-        updatedById: actor.id,
+        ...logistics(input),
+        ...m,
         items: { create: lines.flatMap((l) => (l.kind === "new" ? [l.data] : [])) },
       },
     });
-    await audit(tx, { actorId: actor.id, action: "order.update", entityType: "order", entityId: orderId, summary: `Sửa đơn ${order.code}, tổng ${formatMoney(totals.total)}` });
   });
 }
 
-/** Logistics edit for NEW/active orders. Discount and shipping change only for the owner. */
-export async function updateOrderLogistics(actor: CurrentUser, orderId: string, input: LogisticsInput) {
+// ===== Status, deposit, delete =====
+
+const STATUS_TIMESTAMPS: Record<OrderStatus, Prisma.OrderUpdateInput> = {
+  NEW: { deliveringAt: null, completedAt: null, cancelledAt: null },
+  DELIVERING: { completedAt: null, cancelledAt: null },
+  COMPLETED: { cancelledAt: null },
+  CANCELLED: {},
+};
+
+export async function changeStatus(orderId: string, move: StatusMove) {
   return prisma.$transaction(async (tx) => {
     await lockOrder(tx, orderId);
     const order = await tx.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundError("Không tìm thấy đơn.");
-    if (order.status === "COMPLETED" || order.status === "CANCELLED") throw new AppError("Đơn đã kết thúc, không sửa được.");
-    if (order.status !== "NEW") {
-      // Confirmed orders were required to have these; keep them so day views stay correct.
-      if (!input.deliveryDate) throw new AppError("Đơn đã xác nhận cần có ngày giao.", { deliveryDate: "Bắt buộc" });
-      if (input.receiveType === "DELIVERY" && !blank(input.deliveryAddress)) {
-        throw new AppError("Đơn giao tận nơi cần có địa chỉ.", { deliveryAddress: "Bắt buộc" });
-      }
-    }
-    let money = {};
-    const wantsMoney =
-      (input.discount !== undefined && input.discount !== order.discount) ||
-      (input.shippingFee !== undefined && input.shippingFee !== order.shippingFee);
-    if (wantsMoney) {
-      if (actor.role !== "owner") throw new ForbiddenError("Chỉ chủ shop được sửa giảm giá và phí giao của đơn đã xác nhận.");
-      const discount = input.discount ?? order.discount;
-      const shippingFee = input.shippingFee ?? order.shippingFee;
-      const totals = totalsOrThrow([{ unitPrice: order.subtotal, qty: 1 }], discount, shippingFee);
-      const paid = await loadPaid(tx, orderId);
-      if (totals.total < paid) throw new AppError(`Tổng tiền mới nhỏ hơn số đã thu (${formatMoney(paid)}). Hoàn tiền trước.`);
-      money = { discount, shippingFee, total: totals.total };
-    }
+    const to = moveStatus(order.status, move);
+    if (!to) throw new AppError("Không thể chuyển trạng thái này. Hãy tải lại trang.");
+    const now = new Date();
     await tx.order.update({
       where: { id: orderId },
       data: {
-        recipientName: blank(input.recipientName) ?? order.recipientName,
-        recipientPhone: requirePhone(input.recipientPhone, "recipientPhone"),
-        ...logisticsData(input),
-        ...money,
-        updatedById: actor.id,
+        status: to,
+        ...STATUS_TIMESTAMPS[to],
+        ...(to === "DELIVERING" && move === "next" ? { deliveringAt: now } : {}),
+        ...(to === "COMPLETED" ? { completedAt: now } : {}),
+        ...(to === "CANCELLED" ? { cancelledAt: now } : {}),
       },
     });
-    await audit(tx, { actorId: actor.id, action: "order.update_logistics", entityType: "order", entityId: orderId, summary: `Cập nhật giao nhận đơn ${order.code}` });
+    return to;
   });
 }
 
-// ===== Status transitions =====
-
-async function loadForTransition(tx: Tx, orderId: string, action: OrderAction, actor: CurrentUser) {
-  await lockOrder(tx, orderId);
-  const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: { orderBy: { sortOrder: "asc" } } } });
-  if (!order) throw new NotFoundError("Không tìm thấy đơn.");
-  if (!canPerform(action, order.status, actor.role)) {
-    throw new AppError(actor.role === "staff" ? "Bạn không có quyền hoặc đơn không ở trạng thái phù hợp." : "Đơn không ở trạng thái phù hợp cho thao tác này.");
-  }
-  return order;
-}
-
-export async function confirmOrder(actor: CurrentUser, orderId: string) {
-  return prisma.$transaction(async (tx) => {
-    const order = await loadForTransition(tx, orderId, "confirm", actor);
-    if (!order.items.length) throw new AppError("Đơn chưa có sản phẩm.");
-    if (!order.deliveryDate) throw new AppError("Cần có ngày giao hoặc ngày nhận trước khi xác nhận.");
-    if (order.receiveType === "DELIVERY" && !order.deliveryAddress) throw new AppError("Cần có địa chỉ giao trước khi xác nhận.");
-    const productIds = order.items.map((i) => i.productId).filter((x): x is string => Boolean(x));
-    await lockProducts(tx, productIds);
-    const products = await tx.product.findMany({ where: { id: { in: productIds } } });
-    const map = new Map<string, AllocationProduct>(
-      products.map((p) => [p.id, { mode: p.fulfillmentMode, available: p.onHand - p.reserved, name: p.name }]),
-    );
-    const result = allocate(order.items.map((i) => ({ productId: i.productId, qty: i.qtyOrdered })), map);
-    if (!result.ok) {
-      const list = result.shortages.map((s) => `${s.name}: cần ${s.requested}, còn ${s.available}`).join("; ");
-      throw new AppError(`Không đủ hàng có sẵn để xác nhận. ${list}.`);
-    }
-    const now = new Date();
-    let held = 0;
-    let toMake = 0;
-    for (const [idx, item] of order.items.entries()) {
-      const a = result.lines[idx];
-      held += a.fromStock;
-      toMake += a.toMake;
-      if (a.fromStock > 0 && item.productId) {
-        await applyMovement(tx, {
-          productId: item.productId,
-          type: "RESERVE",
-          quantity: a.fromStock,
-          deltaOnHand: 0,
-          deltaReserved: a.fromStock,
-          actorId: actor.id,
-          orderId,
-          orderItemId: item.id,
-        });
-      }
-      await tx.orderItem.update({
-        where: { id: item.id },
-        data: {
-          qtyFromStock: a.fromStock,
-          qtyToMake: a.toMake,
-          qtyMade: 0,
-          allocatedAt: now,
-          stockState: a.fromStock > 0 ? "RESERVED" : "NONE",
-        },
-      });
-    }
-    await tx.order.update({ where: { id: orderId }, data: { status: "CONFIRMED", confirmedAt: now, updatedById: actor.id } });
-    await audit(tx, {
-      actorId: actor.id,
-      action: "order.confirm",
-      entityType: "order",
-      entityId: orderId,
-      summary: `Xác nhận đơn ${order.code}: giữ ${held} từ kho, cần làm ${toMake}`,
-    });
-    return { held, toMake };
-  });
-}
-
-/** Spec 5.8: production quantity, only while confirmed or after a failed delivery. */
-export async function setMade(actor: CurrentUser, orderItemId: string, qtyMade: number) {
-  return prisma.$transaction(async (tx) => {
-    const item = await tx.orderItem.findUnique({ where: { id: orderItemId }, select: { orderId: true } });
-    if (!item) throw new NotFoundError("Không tìm thấy dòng hàng.");
-    await lockOrder(tx, item.orderId);
-    const fresh = await tx.orderItem.findUniqueOrThrow({ where: { id: orderItemId }, include: { order: true } });
-    if (!["CONFIRMED", "DELIVERY_FAILED"].includes(fresh.order.status)) throw new AppError("Chỉ cập nhật số đã làm cho đơn đã xác nhận.");
-    if (!Number.isInteger(qtyMade) || qtyMade < 0 || qtyMade > fresh.qtyToMake) {
-      throw new AppError(`Số đã làm phải từ 0 đến ${fresh.qtyToMake}.`);
-    }
-    if (qtyMade === fresh.qtyMade) return fresh;
-    const updated = await tx.orderItem.update({ where: { id: orderItemId }, data: { qtyMade } });
-    await tx.order.update({ where: { id: fresh.orderId }, data: { updatedById: actor.id } });
-    await audit(tx, {
-      actorId: actor.id,
-      action: "order.production",
-      entityType: "order",
-      entityId: fresh.orderId,
-      summary: `Cập nhật đã làm ${fresh.nameSnapshot}: ${qtyMade}/${fresh.qtyToMake} (đơn ${fresh.order.code})`,
-    });
-    return updated;
-  });
-}
-
-export async function startDelivery(actor: CurrentUser, orderId: string) {
-  return prisma.$transaction(async (tx) => {
-    const order = await loadForTransition(tx, orderId, "start_delivery", actor);
-    const left = remainingToMake(order.items);
-    if (left > 0) throw new AppError(`Còn ${left} sản phẩm chưa làm xong.`);
-    await tx.order.update({ where: { id: orderId }, data: { status: "DELIVERING", updatedById: actor.id } });
-    await audit(tx, {
-      actorId: actor.id,
-      action: "order.start_delivery",
-      entityType: "order",
-      entityId: orderId,
-      summary: order.receiveType === "PICKUP" ? `Đơn ${order.code} sẵn sàng nhận` : `Bắt đầu giao đơn ${order.code}`,
-    });
-  });
-}
-
-export async function completeOrder(actor: CurrentUser, orderId: string) {
-  return prisma.$transaction(async (tx) => {
-    const order = await loadForTransition(tx, orderId, "complete", actor);
-    await lockProducts(tx, order.items.map((i) => i.productId).filter((x): x is string => Boolean(x)));
-    for (const item of order.items) {
-      if (item.stockState === "RESERVED" && item.qtyFromStock > 0 && item.productId) {
-        await applyMovement(tx, {
-          productId: item.productId,
-          type: "CONSUME",
-          quantity: item.qtyFromStock,
-          deltaOnHand: -item.qtyFromStock,
-          deltaReserved: -item.qtyFromStock,
-          actorId: actor.id,
-          orderId,
-          orderItemId: item.id,
-        });
-        await tx.orderItem.update({ where: { id: item.id }, data: { stockState: "CONSUMED" } });
-      }
-    }
-    await tx.order.update({ where: { id: orderId }, data: { status: "COMPLETED", completedAt: new Date(), updatedById: actor.id } });
-    const owed = order.total - (await loadPaid(tx, orderId));
-    await audit(tx, {
-      actorId: actor.id,
-      action: "order.complete",
-      entityType: "order",
-      entityId: orderId,
-      summary: `Hoàn thành đơn ${order.code}${owed > 0 ? `, còn nợ ${formatMoney(owed)}` : ""}`,
-    });
-    return { owed: Math.max(0, owed) };
-  });
-}
-
-export async function failDelivery(actor: CurrentUser, orderId: string, reason: string) {
-  if (!reason.trim()) throw new AppError("Vui lòng ghi lý do giao thất bại.", { reason: "Bắt buộc" });
-  return prisma.$transaction(async (tx) => {
-    const order = await loadForTransition(tx, orderId, "fail_delivery", actor);
-    await tx.order.update({ where: { id: orderId }, data: { status: "DELIVERY_FAILED", failReason: reason.trim(), updatedById: actor.id } });
-    await audit(tx, { actorId: actor.id, action: "order.fail_delivery", entityType: "order", entityId: orderId, summary: `Giao thất bại đơn ${order.code}: ${reason.trim()}` });
-  });
-}
-
-export async function retryDelivery(actor: CurrentUser, orderId: string) {
-  return prisma.$transaction(async (tx) => {
-    const order = await loadForTransition(tx, orderId, "retry_delivery", actor);
-    const left = remainingToMake(order.items);
-    if (left > 0) throw new AppError(`Còn ${left} sản phẩm chưa làm xong.`);
-    await tx.order.update({ where: { id: orderId }, data: { status: "DELIVERING", updatedById: actor.id } });
-    await audit(tx, { actorId: actor.id, action: "order.retry_delivery", entityType: "order", entityId: orderId, summary: `Giao lại đơn ${order.code}` });
-  });
-}
-
-/**
- * Releases held stock and settles made items (spec 5.4). Shared by cancel and unconfirm.
- * `resolutions` must cover every product line with qtyMade > 0.
- */
-async function releaseOrder(
-  tx: Tx,
-  actor: CurrentUser,
-  order: Prisma.OrderGetPayload<{ include: { items: true } }>,
-  resolutions: Record<string, Resolution>,
-  writeOffReason: string | undefined,
-  context: string,
-) {
-  const productIds = order.items.map((i) => i.productId).filter((x): x is string => Boolean(x));
-  await lockProducts(tx, productIds);
-  const products = new Map((await tx.product.findMany({ where: { id: { in: productIds } } })).map((p) => [p.id, p]));
-  const notes: string[] = [];
-  for (const item of order.items) {
-    if (item.stockState === "RESERVED" && item.qtyFromStock > 0 && item.productId) {
-      await applyMovement(tx, {
-        productId: item.productId,
-        type: "RELEASE",
-        quantity: item.qtyFromStock,
-        deltaOnHand: 0,
-        deltaReserved: -item.qtyFromStock,
-        actorId: actor.id,
-        orderId: order.id,
-        orderItemId: item.id,
-        reason: context,
-      });
-      await tx.orderItem.update({ where: { id: item.id }, data: { stockState: "RELEASED" } });
-      notes.push(`trả ${item.qtyFromStock} ${item.nameSnapshot} về kho`);
-    }
-    if (item.qtyMade > 0 && item.productId) {
-      const choice = resolutions[item.id];
-      if (!choice) throw new AppError(`Chọn nhập kho hay hư hao cho ${item.qtyMade} ${item.nameSnapshot} đã làm.`);
-      const product = products.get(item.productId)!;
-      if (choice === "RESTOCK") {
-        if (product.fulfillmentMode === "MADE_TO_ORDER") {
-          throw new AppError(`"${product.name}" làm theo đơn nên không nhập kho được. Chọn hư hao, hoặc đổi phương thức sản phẩm sang Linh hoạt trước.`);
-        }
-        await applyMovement(tx, {
-          productId: item.productId,
-          type: "RESTOCK_FROM_ORDER",
-          quantity: item.qtyMade,
-          deltaOnHand: item.qtyMade,
-          deltaReserved: 0,
-          actorId: actor.id,
-          orderId: order.id,
-          orderItemId: item.id,
-          reason: context,
-        });
-        notes.push(`nhập ${item.qtyMade} ${item.nameSnapshot} đã làm vào kho`);
-      } else {
-        const reason = writeOffReason?.trim();
-        if (!reason) throw new AppError("Vui lòng ghi lý do hư hao.", { writeOffReason: "Bắt buộc" });
-        await applyMovement(tx, {
-          productId: item.productId,
-          type: "WRITE_OFF",
-          quantity: item.qtyMade,
-          deltaOnHand: 0,
-          deltaReserved: 0,
-          actorId: actor.id,
-          orderId: order.id,
-          orderItemId: item.id,
-          reason,
-        });
-        notes.push(`ghi hư hao ${item.qtyMade} ${item.nameSnapshot}`);
-      }
-    }
-  }
-  return notes;
-}
-
-export async function cancelOrder(
-  actor: CurrentUser,
-  orderId: string,
-  reason: string,
-  resolutions: Record<string, Resolution> = {},
-  writeOffReason?: string,
-) {
-  if (!reason.trim()) throw new AppError("Vui lòng ghi lý do hủy đơn.", { reason: "Bắt buộc" });
-  return prisma.$transaction(async (tx) => {
-    const order = await loadForTransition(tx, orderId, "cancel", actor);
-    const notes = order.status === "NEW" ? [] : await releaseOrder(tx, actor, order, resolutions, writeOffReason, `Hủy đơn ${order.code}`);
-    await tx.order.update({
-      where: { id: orderId },
-      data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason.trim(), updatedById: actor.id },
-    });
-    const paid = await loadPaid(tx, orderId);
-    await audit(tx, {
-      actorId: actor.id,
-      action: "order.cancel",
-      entityType: "order",
-      entityId: orderId,
-      summary: `Hủy đơn ${order.code}: ${reason.trim()}${notes.length ? `; ${notes.join(", ")}` : ""}`,
-    });
-    return { paid };
-  });
-}
-
-export async function unconfirmOrder(actor: CurrentUser, orderId: string, resolutions: Record<string, Resolution> = {}, writeOffReason?: string) {
-  return prisma.$transaction(async (tx) => {
-    const order = await loadForTransition(tx, orderId, "unconfirm", actor);
-    const notes = await releaseOrder(tx, actor, order, resolutions, writeOffReason, `Hủy xác nhận đơn ${order.code}`);
-    await tx.orderItem.updateMany({
-      where: { orderId },
-      data: { qtyFromStock: 0, qtyToMake: 0, qtyMade: 0, allocatedAt: null, stockState: "NONE" },
-    });
-    await tx.order.update({ where: { id: orderId }, data: { status: "NEW", confirmedAt: null, updatedById: actor.id } });
-    await audit(tx, {
-      actorId: actor.id,
-      action: "order.unconfirm",
-      entityType: "order",
-      entityId: orderId,
-      summary: `Hủy xác nhận đơn ${order.code}${notes.length ? `; ${notes.join(", ")}` : ""}`,
-    });
-  });
-}
-
-// ===== Payments =====
-
-export async function addPayment(
-  actor: CurrentUser,
-  orderId: string,
-  input: { type: PaymentType; amount: number; method: PaymentMethod; note?: string },
-) {
-  if (!Number.isInteger(input.amount) || input.amount <= 0) throw new AppError("Số tiền phải lớn hơn 0.", { amount: "Không hợp lệ" });
-  if (input.type === "REFUND" && actor.role !== "owner") throw new ForbiddenError("Chỉ chủ shop được hoàn tiền.");
+/** "Đã thu đủ": set the deposit to the total so nothing remains. */
+export async function markPaidInFull(orderId: string) {
   return prisma.$transaction(async (tx) => {
     await lockOrder(tx, orderId);
     const order = await tx.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundError("Không tìm thấy đơn.");
-    const paid = await loadPaid(tx, orderId);
-    if (input.type === "REFUND") {
-      if (input.amount > paid) throw new AppError(`Số hoàn không được lớn hơn số đã thu (${formatMoney(paid)}).`, { amount: "Quá số đã thu" });
-    } else {
-      if (order.status === "CANCELLED") throw new AppError("Đơn đã hủy, chỉ có thể hoàn tiền.");
-      const owed = order.total - paid;
-      if (input.amount > owed) throw new AppError(`Số tiền vượt quá phần còn lại (${formatMoney(Math.max(0, owed))}).`, { amount: "Vượt quá phần còn lại" });
-    }
-    const payment = await tx.payment.create({
-      data: { orderId, type: input.type, amount: input.amount, method: input.method, note: blank(input.note), createdById: actor.id },
-    });
-    const label = input.type === "REFUND" ? "Hoàn tiền" : input.type === "DEPOSIT" ? "Ghi nhận cọc" : "Ghi nhận thanh toán";
-    await audit(tx, { actorId: actor.id, action: `payment.${input.type.toLowerCase()}`, entityType: "order", entityId: orderId, summary: `${label} ${formatMoney(input.amount)} cho đơn ${order.code}` });
-    return payment;
+    await tx.order.update({ where: { id: orderId }, data: { deposit: order.total } });
+    return order.total;
   });
 }
 
-export async function voidPayment(actor: CurrentUser, paymentId: string, reason: string) {
-  if (actor.role !== "owner") throw new ForbiddenError("Chỉ chủ shop được hủy dòng thanh toán.");
-  if (!reason.trim()) throw new AppError("Vui lòng ghi lý do.", { reason: "Bắt buộc" });
+export async function deleteOrder(orderId: string) {
   return prisma.$transaction(async (tx) => {
-    const found = await tx.payment.findUnique({ where: { id: paymentId }, select: { orderId: true } });
-    if (!found) throw new NotFoundError("Không tìm thấy dòng thanh toán.");
-    await lockOrder(tx, found.orderId);
-    // Re-read under the order lock so two concurrent voids cannot both pass.
-    const payment = await tx.payment.findUniqueOrThrow({ where: { id: paymentId }, include: { order: true } });
-    if (payment.voidedAt) throw new AppError("Dòng này đã được hủy trước đó.");
-    if (payment.type !== "REFUND") {
-      // Voiding a receipt must not leave refunds larger than what remains collected.
-      const paidAfter = (await loadPaid(tx, payment.orderId)) - payment.amount;
-      if (paidAfter < 0) throw new AppError("Không thể hủy: số đã hoàn sẽ lớn hơn số đã thu.");
-    }
-    await tx.payment.update({ where: { id: paymentId }, data: { voidedAt: new Date(), voidedById: actor.id, voidReason: reason.trim() } });
-    await audit(tx, {
-      actorId: actor.id,
-      action: "payment.void",
-      entityType: "order",
-      entityId: payment.orderId,
-      summary: `Hủy dòng thanh toán ${formatMoney(payment.amount)} của đơn ${payment.order.code}: ${reason.trim()}`,
-    });
+    await lockOrder(tx, orderId);
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundError("Không tìm thấy đơn.");
+    if (!canDelete(order.status)) throw new AppError("Chỉ xóa được đơn Mới hoặc đơn đã Hủy.");
+    await tx.order.delete({ where: { id: orderId } });
+    return order.code;
   });
 }
 
 // ===== Queries =====
 
-export type DateField = "delivery" | "created";
-
-export interface OrderListFilter {
-  from?: Ymd;
-  to?: Ymd;
-  dateField: DateField;
-  statuses?: OrderStatus[];
-  q?: string;
-  customerId?: string;
-}
-
-function listWhere(f: OrderListFilter, withStatus = true): Prisma.OrderWhereInput {
-  const and: Prisma.OrderWhereInput[] = [];
-  if (f.from && f.to) {
-    and.push(
-      f.dateField === "created"
-        ? { createdAt: vnDayRange(f.from, f.to) }
-        : { deliveryDate: { gte: ymdToDbDate(f.from), lte: ymdToDbDate(f.to) } },
-    );
-  }
-  if (withStatus && f.statuses?.length) and.push({ status: { in: f.statuses } });
-  if (f.customerId) and.push({ customerId: f.customerId });
-  const q = f.q?.trim();
-  if (q) {
-    const digits = q.replace(/\D/g, "");
-    const or: Prisma.OrderWhereInput[] = [
-      { code: { contains: q, mode: "insensitive" } },
-      { recipientName: { contains: q, mode: "insensitive" } },
-      { customer: { name: { contains: q, mode: "insensitive" } } },
-    ];
-    if (digits.length >= 3) {
-      const local = digits.startsWith("84") ? "0" + digits.slice(2) : digits;
-      or.push({ recipientPhone: { contains: local } }, { customer: { phone: { contains: local } } });
-    }
-    and.push({ OR: or });
-  }
-  return and.length ? { AND: and } : {};
-}
-
 const listInclude = {
   customer: { select: { id: true, name: true, phone: true } },
-  items: { select: { qtyToMake: true, qtyMade: true } },
-  payments: { select: { type: true, amount: true, voidedAt: true } },
+  items: { orderBy: { sortOrder: "asc" }, select: { nameSnapshot: true, qty: true } },
 } satisfies Prisma.OrderInclude;
 
-export type OrderListRow = Awaited<ReturnType<typeof listOrders>>["rows"][number];
+export type OrderListRow = Prisma.OrderGetPayload<{ include: typeof listInclude }>;
 
-export async function listOrders(f: OrderListFilter, page: number, pageSize = 30) {
-  const where = listWhere(f);
-  // Without a date range, newest first; a delivery-date range reads like a schedule.
-  const orderBy: Prisma.OrderOrderByWithRelationInput[] =
-    f.dateField === "created" || !f.from
-      ? [{ createdAt: "desc" }]
-      : [{ deliveryDate: { sort: "asc", nulls: "last" } }, { deliveryTimeFrom: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }];
-  const [rows, total] = await Promise.all([
-    prisma.order.findMany({ where, orderBy, skip: (page - 1) * pageSize, take: pageSize, include: listInclude }),
-    prisma.order.count({ where }),
-  ]);
-  return { rows: rows.map(decorate), total, pageSize };
+const scheduleOrder: Prisma.OrderOrderByWithRelationInput[] = [
+  { deliveryDate: "asc" },
+  { deliveryTimeFrom: { sort: "asc", nulls: "last" } },
+  { createdAt: "asc" },
+];
+
+export async function ordersInRange(from: Ymd, to: Ymd, status?: OrderStatus) {
+  return prisma.order.findMany({
+    where: { deliveryDate: { gte: ymdToDbDate(from), lte: ymdToDbDate(to) }, ...(status ? { status } : {}) },
+    orderBy: scheduleOrder,
+    include: listInclude,
+  });
 }
 
-export async function statusCounts(f: OrderListFilter) {
-  const groups = await prisma.order.groupBy({ by: ["status"], where: listWhere(f, false), _count: { _all: true } });
-  const counts: Partial<Record<OrderStatus, number>> = {};
+export async function statusCounts(from: Ymd, to: Ymd) {
+  const groups = await prisma.order.groupBy({
+    by: ["status"],
+    where: { deliveryDate: { gte: ymdToDbDate(from), lte: ymdToDbDate(to) } },
+    _count: { _all: true },
+  });
+  const counts: Record<OrderStatus, number> = { NEW: 0, DELIVERING: 0, COMPLETED: 0, CANCELLED: 0 };
   for (const g of groups) counts[g.status] = g._count._all;
   return counts;
 }
 
-function decorate<T extends Prisma.OrderGetPayload<{ include: typeof listInclude }>>(o: T) {
-  const paid = netPaid(o.payments);
-  const needMake = o.items.reduce((s, i) => s + i.qtyToMake, 0);
-  const made = o.items.reduce((s, i) => s + Math.min(i.qtyMade, i.qtyToMake), 0);
+/** One status entry per order in the range, for the calendar dots. */
+export async function calendarMarks(from: Ymd, to: Ymd) {
+  const groups = await prisma.order.groupBy({
+    by: ["deliveryDate", "status"],
+    where: { deliveryDate: { gte: ymdToDbDate(from), lte: ymdToDbDate(to) } },
+    _count: { _all: true },
+  });
+  const marks: Record<Ymd, { statuses: OrderStatus[]; count: number }> = {};
+  for (const g of groups) {
+    const day = g.deliveryDate.toISOString().slice(0, 10);
+    marks[day] ??= { statuses: [], count: 0 };
+    for (let i = 0; i < g._count._all; i++) marks[day].statuses.push(g.status);
+    marks[day].count += g._count._all;
+  }
+  const order: OrderStatus[] = ["NEW", "DELIVERING", "COMPLETED", "CANCELLED"];
+  for (const m of Object.values(marks)) m.statuses.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  return marks;
+}
+
+/**
+ * "Tổng hợp cần làm" (spec 4): only NEW orders whose delivery date is in the range.
+ * Delivering, completed and cancelled orders are excluded from counts and money.
+ */
+export async function todoSummary(from: Ymd, to: Ymd) {
+  const orders = await prisma.order.findMany({
+    where: { status: "NEW", deliveryDate: { gte: ymdToDbDate(from), lte: ymdToDbDate(to) } },
+    select: { total: true, deposit: true, items: { select: { productId: true, nameSnapshot: true, productCodeSnapshot: true, qty: true } } },
+  });
+  const total = orders.reduce((s, o) => s + o.total, 0);
+  const deposit = orders.reduce((s, o) => s + o.deposit, 0);
+  const per = new Map<string, { productId: string; code: string; name: string; qty: number }>();
+  for (const o of orders) {
+    for (const i of o.items) {
+      const row = per.get(i.productId) ?? { productId: i.productId, code: i.productCodeSnapshot, name: i.nameSnapshot, qty: 0 };
+      row.qty += i.qty;
+      per.set(i.productId, row);
+    }
+  }
+  const products = [...per.values()].sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name, "vi"));
+  const images = await prisma.productImage.findMany({ where: { productId: { in: products.map((p) => p.productId) }, isPrimary: true }, select: { productId: true, url: true } });
+  const imageOf = new Map(images.map((i) => [i.productId, i.url]));
   return {
-    ...o,
-    paid,
-    owed: Math.max(0, o.total - paid),
-    payState: paymentState(o.total, paid),
-    production: productionState(o.status, o.items),
-    needMake,
-    made,
+    count: orders.length,
+    total,
+    deposit,
+    remaining: total - deposit,
+    products: products.map((p) => ({ ...p, imageUrl: imageOf.get(p.productId) ?? null })),
   };
 }
 
-/** `includeCost` must be false for staff: cost snapshots are removed here, not only hidden in the UI. */
-export async function getOrder(id: string, opts: { includeCost: boolean }) {
-  const order = await prisma.order.findUnique({
+/** The four overview cards (spec 4, "Thẻ tổng quan"). */
+export async function overview(today: Ymd = todayVn()) {
+  const dow = (new Date(today + "T00:00:00Z").getUTCDay() + 6) % 7;
+  const weekFrom = addDays(today, -dow);
+  const weekTo = addDays(weekFrom, 6);
+  const [todayCount, weekCount, newOrders] = await Promise.all([
+    prisma.order.count({ where: { deliveryDate: ymdToDbDate(today), status: { not: "CANCELLED" } } }),
+    prisma.order.count({ where: { deliveryDate: { gte: ymdToDbDate(weekFrom), lte: ymdToDbDate(weekTo) }, status: { not: "CANCELLED" } } }),
+    prisma.order.findMany({ where: { status: "NEW" }, select: { total: true, deposit: true } }),
+  ]);
+  return {
+    todayCount,
+    weekCount,
+    newCount: newOrders.length,
+    owedNew: newOrders.reduce((s, o) => s + remaining(o), 0),
+    weekFrom,
+    weekTo,
+  };
+}
+
+/** Shop-wide totals shown on the shop information page. */
+export async function shopTotals() {
+  const [completed, totalTasks, cancelledTasks] = await Promise.all([
+    prisma.order.aggregate({ where: { status: "COMPLETED" }, _sum: { total: true } }),
+    prisma.order.count(),
+    prisma.order.count({ where: { status: "CANCELLED" } }),
+  ]);
+  return { totalRevenue: completed._sum.total ?? 0, totalTasks, cancelledTasks };
+}
+
+export type ProductRanking = "quantity" | "revenue";
+
+interface TopSellingProductRow {
+  productId: string;
+  code: string;
+  name: string;
+  quantity: bigint;
+  revenue: bigint;
+}
+
+/** Top five products from completed orders, ranked by sold quantity or item revenue. */
+export async function topSellingProducts(rankBy: ProductRanking = "quantity") {
+  const orderBy =
+    rankBy === "revenue"
+      ? Prisma.sql`SUM(oi.qty::bigint * oi.unit_price_snapshot::bigint) DESC, SUM(oi.qty)::bigint DESC`
+      : Prisma.sql`SUM(oi.qty)::bigint DESC, SUM(oi.qty::bigint * oi.unit_price_snapshot::bigint) DESC`;
+  const rows = await prisma.$queryRaw<TopSellingProductRow[]>`
+    SELECT
+      p.id AS "productId",
+      p.code,
+      p.name,
+      SUM(oi.qty)::bigint AS quantity,
+      SUM(oi.qty::bigint * oi.unit_price_snapshot::bigint)::bigint AS revenue
+    FROM order_items oi
+    INNER JOIN orders o ON o.id = oi.order_id
+    INNER JOIN products p ON p.id = oi.product_id
+    WHERE o.status = 'COMPLETED'
+    GROUP BY p.id, p.code, p.name
+    ORDER BY ${orderBy}, p.name ASC, p.code ASC
+    LIMIT 5`;
+  return rows.map((row) => ({
+    productId: row.productId,
+    code: row.code,
+    name: row.name,
+    quantity: Number(row.quantity),
+    revenue: Number(row.revenue),
+  }));
+}
+
+export async function getOrder(id: string) {
+  return prisma.order.findUnique({
     where: { id },
     include: {
       customer: true,
-      createdBy: { select: { name: true } },
-      updatedBy: { select: { name: true } },
       items: {
         orderBy: { sortOrder: "asc" },
-        include: {
-          product: {
-            select: { id: true, fulfillmentMode: true, status: true, images: { where: { isPrimary: true }, select: { url: true }, take: 1 } },
-          },
-        },
+        include: { product: { select: { id: true, isArchived: true, images: { where: { isPrimary: true }, select: { url: true }, take: 1 } } } },
       },
-      payments: { orderBy: { paidAt: "asc" }, include: { createdBy: { select: { name: true } }, voidedBy: { select: { name: true } } } },
     },
   });
-  if (!order) return null;
-  const paid = netPaid(order.payments);
-  return {
-    ...order,
-    items: opts.includeCost ? order.items : order.items.map((i) => ({ ...i, unitCostSnapshot: null })),
-    paid,
-    owed: Math.max(0, order.total - paid),
-    payState: paymentState(order.total, paid),
-    production: productionState(order.status, order.items),
-    remaining: ACTIVE_STATUSES.includes(order.status) ? remainingToMake(order.items) : 0,
-  };
 }
 
 export type OrderDetail = NonNullable<Awaited<ReturnType<typeof getOrder>>>;
+
+export async function customerOrders(customerId: string) {
+  return prisma.order.findMany({ where: { customerId }, orderBy: [{ deliveryDate: "desc" }, { createdAt: "desc" }], include: listInclude, take: 100 });
+}
+
+export function describeTotal(o: { total: number; deposit: number }) {
+  const left = remaining(o);
+  return left ? `Còn ${formatMoney(left)}` : "Đã thu đủ";
+}

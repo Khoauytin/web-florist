@@ -1,0 +1,574 @@
+/* Public catalog: the shop's existing design (legacy/index.html) plus v2 additions (search, code, order picker). */
+  :root {
+    /* Màu lấy từ ảnh hero: trời xanh, hồng, cúc cam, vàng bơ, tím nhạt */
+    --ink: #16335B;
+    --ink-soft: #566B8C;
+    --line: #E4EBF4;
+    --paper: #FFFFFF;
+    --sky: #93C0DD;
+    --sky-deep: #7EAFDC;
+    --sky-pale: #EEF6FC;
+    --rose: #F2798A;
+    --rose-deep: #C8385A;
+    --marigold: #F58A2E;
+    --butter: #F2C230;
+    --lilac: #A990E2;
+
+    --display: var(--font-fraunces), "Times New Roman", serif;
+    --body: var(--font-be-vietnam), system-ui, -apple-system, "Segoe UI", sans-serif;
+
+    --gutter: 16px;
+    --bar-h: 68px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  html.sheet-open { overflow: hidden; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.55;
+    padding-bottom: calc(var(--bar-h) + var(--safe-b));
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 88vh;
+    min-height: 88svh;
+    overflow: hidden;
+    border-radius: 0 0 28px 28px;
+    /* Lớp dưới chạy ngang theo đúng màu trời ở mép trên của ảnh (trái nhạt, phải đậm) để ảnh hoà vào nền */
+    background:
+      linear-gradient(180deg, var(--sky-deep) 0%, rgba(126, 175, 220, 0) 56%),
+      linear-gradient(90deg, #BCD7EC 0%, var(--sky) 50%, #76A2D0 100%);
+  }
+  .hero-copy {
+    position: relative;
+    z-index: 1;
+    padding: clamp(28px, 7vh, 60px) 22px 0;
+  }
+  .hero h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100;
+    font-weight: 800;
+    font-size: clamp(3.1rem, 15.5vw, 5.6rem);
+    line-height: .92;
+    letter-spacing: -.025em;
+  }
+  .hero h1 em {
+    display: block;
+    font-weight: 400;
+    letter-spacing: -.01em;
+    color: #fff;
+    text-shadow: 0 1px 14px rgba(22, 51, 91, .28);
+  }
+  .hero-slogan {
+    margin: 16px 0 0;
+    max-width: 17em;
+    text-wrap: balance;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    padding: 12px 20px 12px 22px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 6px 20px rgba(22, 51, 91, .16);
+  }
+  .hero-cta svg { width: 18px; height: 18px; }
+  /* Điện thoại: ảnh chỉ phóng nhẹ 120% để cả bó hoa nằm trọn chiều ngang, phần bị cắt hai bên chỉ là trời */
+  .hero-photo {
+    position: relative;
+    margin-top: auto;
+    padding-top: 12px;
+  }
+  .hero-photo img {
+    display: block;
+    width: 120%;
+    max-width: none;
+    height: auto;
+    margin-left: -10%;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18%);
+            mask-image: linear-gradient(to bottom, transparent 0, #000 18%);
+  }
+
+  /* ---------- Giới thiệu ---------- */
+  .intro {
+    padding: 48px 26px 40px;
+    max-width: 44rem;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .intro p {
+    margin: 0;
+    text-wrap: balance;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100;
+    font-weight: 400;
+    font-size: 1.28rem;
+    line-height: 1.45;
+  }
+  .intro p + p {
+    margin-top: 14px;
+    font-family: var(--body);
+    font-size: .98rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- Tab danh mục ---------- */
+  .tabs-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(255, 255, 255, .94);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 10px var(--gutter);
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-padding-inline: var(--gutter);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px 0 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    font-weight: 600;
+    font-size: .95rem;
+    white-space: nowrap;
+    transition: background-color .18s, border-color .18s;
+  }
+  .tab::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--c);
+    transition: background-color .18s;
+  }
+  .tab[aria-selected="true"] { background: var(--c); border-color: var(--c); }
+  .tab[aria-selected="true"]::before { background: #fff; }
+
+  /* ---------- Tìm kiếm ---------- */
+  .search-wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter) 10px; }
+  .search { position: relative; display: block; }
+  .search svg { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; margin-top: -9px; stroke: var(--ink-soft); stroke-width: 2.2; fill: none; stroke-linecap: round; }
+  .search input { width: 100%; min-height: 44px; padding: 0 16px 0 42px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font: inherit; font-size: 16px; color: var(--ink); }
+  .search input:focus-visible { outline: none; border-color: var(--sky-deep); }
+
+  /* ---------- Lưới sản phẩm ---------- */
+  .catalog {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px var(--gutter) 40px;
+    scroll-margin-top: 0;
+  }
+  .catalog-hint {
+    margin: 0 0 14px;
+    font-size: .875rem;
+    color: var(--ink-soft);
+  }
+  .grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 12px;
+    align-items: start;
+  }
+  .card {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card-photo {
+    display: block;
+    position: relative;
+    aspect-ratio: 3 / 4;
+    border-radius: 18px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--c) 34%, #fff);
+    transition: transform .2s ease;
+  }
+  .card:active .card-photo { transform: scale(.97); }
+  /* Mọi ảnh sản phẩm đều được chuẩn bị sẵn ở khung dọc 3:4 (720 x 960) */
+  .card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    margin-top: 10px;
+    font-size: .92rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .card-price {
+    display: block;
+    margin-top: 3px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--rose-deep);
+  }
+  .grid li { animation: rise .28s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+  /* Khung ảnh tạm khi chưa có ảnh thật */
+  .ph {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(120% 80% at 20% 10%, rgba(255, 255, 255, .55), transparent 60%),
+      color-mix(in srgb, var(--c) var(--mix, 36%), #fff);
+  }
+  .ph svg { width: 46%; height: auto; stroke: #fff; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .ph-label {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--ink);
+    opacity: .7;
+  }
+
+  /* ---------- Chân trang ---------- */
+  .foot {
+    padding: 30px 22px 34px;
+    background: var(--sky-pale);
+    border-radius: 28px 28px 0 0;
+    text-align: center;
+  }
+  .foot p { margin: 4px 0 0; font-size: .92rem; color: var(--ink-soft); }
+  .foot .foot-name {
+    margin: 0;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--ink);
+  }
+  .foot .demo-note { margin-top: 16px; font-size: .8rem; }
+
+  /* ---------- Thanh liên hệ cố định ---------- */
+  .contact-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 10px 10px calc(10px + var(--safe-b));
+    background: rgba(255, 255, 255, .96);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+  }
+  .contact-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 48px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--sky-pale);
+    font-size: .9rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .contact-logo-frame { display: grid; place-items: center; width: 24px; height: 24px; overflow: hidden; flex: none; }
+  .contact-logo { width: 24px; height: 24px; object-fit: contain; flex: none; }
+  .contact-btn.is-main .contact-logo--phone,
+  .contact-btn.is-main .contact-logo--order { filter: invert(1); }
+  .contact-bar .contact-btn { flex-direction: column; gap: 2px; font-size: .78rem; padding: 6px 4px; }
+  .info-code { margin: 2px 0 0; font-size: .84rem; color: var(--ink-soft); }
+  .order-pick { display: grid; gap: 8px; }
+  .order-pick p { margin: 0 0 2px; font-size: .88rem; color: var(--ink-soft); }
+  .order-pick .grid4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .order-pick .contact-btn { min-height: 52px; }
+  .order-pick .back-link { justify-self: start; border: 0; background: none; padding: 8px 0; font-weight: 600; color: var(--ink-soft); }
+  .contact-btn.is-main { background: var(--ink); color: #fff; }
+
+  /* ---------- Bảng chi tiết trượt từ dưới lên ---------- */
+  .sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    max-height: 92svh;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 26px 26px 0 0;
+    background: #fff;
+    color: var(--ink);
+    overflow: hidden;
+    transform: translateY(100%);
+    transition: transform .34s cubic-bezier(.2, .85, .25, 1);
+  }
+  .sheet[open] { display: flex; flex-direction: column; }
+  .sheet:focus { outline: none; }
+  .sheet.is-open { transform: none; }
+  .sheet::backdrop { background: rgba(22, 51, 91, 0); transition: background-color .3s; }
+  .sheet.is-open::backdrop { background: rgba(22, 51, 91, .46); }
+
+  .sheet-grab {
+    position: relative;
+    flex: none;
+    height: 44px;
+    touch-action: none;
+  }
+  .sheet-grab::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    width: 44px;
+    height: 5px;
+    margin-left: -22px;
+    border-radius: 3px;
+    background: #CDD7E5;
+  }
+  .sheet-close {
+    position: absolute;
+    right: 8px;
+    top: 4px;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--sky-pale);
+  }
+  .sheet-close svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; }
+
+  /* flex-basis phải là auto: với "flex: 1" Safari trên iPhone co phần này về 0 vì bảng không có chiều cao cố định */
+  .sheet-body { flex: 0 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+
+  .gallery {
+    display: flex;
+    gap: 10px;
+    padding: 4px 20px 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 20px;
+    scrollbar-width: none;
+  }
+  .gallery::-webkit-scrollbar { display: none; }
+  .slide {
+    position: relative;
+    flex: none;
+    width: 82%;
+    aspect-ratio: 3 / 4;
+    border-radius: 20px;
+    overflow: hidden;
+    scroll-snap-align: start;
+    background: var(--sky-pale);
+  }
+  .gallery:has(.slide:only-child) { justify-content: center; }
+  .slide:only-child { width: min(100%, 420px); }
+  .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 0 0;
+  }
+  .dots i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #CDD7E5;
+    transition: width .2s, background-color .2s;
+  }
+  .dots i.on { width: 20px; border-radius: 4px; background: var(--c); }
+
+  .info { padding: 16px 20px 22px; }
+  .info-cat {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .84rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .info-cat::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+  .info h2 {
+    margin: 4px 0 0;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100;
+    font-weight: 700;
+    font-size: 1.7rem;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+  }
+  .info-price { margin: 6px 0 0; font-size: 1.35rem; font-weight: 700; color: var(--rose-deep); }
+
+  .specs { margin: 14px 0 0; border-top: 1px solid var(--line); }
+  .specs div {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .specs dt { font-size: .88rem; color: var(--ink-soft); }
+  .specs dd { margin: 0; font-size: .95rem; font-weight: 500; }
+  .info-note { margin: 14px 0 0; font-size: .88rem; color: var(--ink-soft); }
+
+  .sheet-actions {
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 10px 16px calc(12px + var(--safe-b));
+    border-top: 1px solid var(--line);
+    background: #fff;
+  }
+  .sheet-actions .contact-btn { min-height: 52px; font-size: .98rem; }
+  .sheet-actions .contact-btn:not(.is-main) { padding: 0 18px; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--bar-h) + var(--safe-b) + 14px);
+    z-index: 60;
+    transform: translate(-50%, 12px);
+    max-width: calc(100vw - 32px);
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #fff;
+    font-size: .88rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  /* Inside the open sheet: float above its action buttons */
+  .sheet .toast { bottom: calc(var(--safe-b) + 96px); z-index: 2; }
+
+  /* ---------- Máy tính bảng / máy tính ---------- */
+  @media (min-width: 640px) {
+    :root { --gutter: 24px; }
+    .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px 18px; }
+    .card-name { font-size: 1rem; }
+    .contact-bar {
+      left: 50%;
+      right: auto;
+      bottom: 16px;
+      width: 480px;
+      transform: translateX(-50%);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 8px;
+      box-shadow: 0 10px 30px rgba(22, 51, 91, .14);
+    }
+    body { padding-bottom: 104px; }
+    .toast { bottom: 104px; }
+  }
+  @media (min-width: 900px) {
+    .hero {
+      flex-direction: row;
+      align-items: center;
+      min-height: 0;
+      height: min(86vh, 760px);
+      background: linear-gradient(90deg, #C6DEF1 0%, #B8D7EC 46%, var(--sky) 100%);
+    }
+    .hero-copy { flex: 0 0 42%; padding: 0 0 0 clamp(32px, 6vw, 96px); }
+    .hero h1 { font-size: clamp(4rem, 7.4vw, 6.6rem); }
+    .hero-slogan { font-size: 1.3rem; }
+    .hero-photo { flex: 1; align-self: stretch; margin: 0 0 0 -6%; padding: 0; }
+    .hero-photo img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      object-fit: cover;
+      object-position: 50% 50%;
+      -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22%);
+              mask-image: linear-gradient(to right, transparent 0, #000 22%);
+    }
+    .intro { padding: 64px 24px 48px; }
+    .intro p { font-size: 1.6rem; }
+    .tabs { justify-content: center; }
+    .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 36px 22px; }
+    .card:hover .card-photo { transform: translateY(-4px); }
+
+    .sheet {
+      inset: 0;
+      width: min(900px, 92vw);
+      height: fit-content;
+      max-height: 88vh;
+      margin: auto;
+      border-radius: 26px;
+      transform: translateY(24px);
+      opacity: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .sheet.is-open { opacity: 1; }
+    .sheet-grab::before { display: none; }
+    .sheet-view { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+    .gallery { padding-right: 0; }
+    .info { padding: 4px 28px 24px; }
+    .sheet-actions { padding: 12px 24px 16px; }
+    .order-pick .grid4 { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .empty-cat { padding: 48px 22px; text-align: center; color: var(--ink-soft); }

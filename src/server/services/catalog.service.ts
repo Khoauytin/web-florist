@@ -1,68 +1,99 @@
-import type { FulfillmentMode, Prisma, ProductStatus } from "@/generated/prisma/client";
-import { prisma, lockProducts } from "@/server/db/prisma";
-import { AppError, ForbiddenError, NotFoundError } from "@/server/errors";
-import { audit } from "@/server/services/audit.service";
-import { formatMoney } from "@/lib/format";
-import type { CurrentUser } from "@/server/auth/session";
-
-function ownerOnly(actor: CurrentUser) {
-  if (actor.role !== "owner") throw new ForbiddenError("Chỉ chủ shop được thay đổi danh mục và sản phẩm.");
-}
+import type { Prisma } from "@/generated/prisma/client";
+import { prisma, type Tx } from "@/server/db/prisma";
+import { AppError, NotFoundError } from "@/server/errors";
+import { PREFIX_RE, formatProductCode } from "@/server/domain/product-code";
+import { storage } from "@/server/storage";
 
 // ===== Categories =====
 
-export async function listCategories(opts: { activeOnly?: boolean } = {}) {
+export async function listCategories() {
   return prisma.category.findMany({
-    where: opts.activeOnly ? { isActive: true } : {},
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: { _count: { select: { products: true } } },
+    include: { _count: { select: { products: { where: { isArchived: false } } } } },
   });
 }
 
-export async function createCategory(actor: CurrentUser, input: { name: string; description?: string }) {
-  ownerOnly(actor);
+function cleanCategory(input: { name: string; codePrefix: string }) {
   const name = input.name.trim();
-  if (!name) throw new AppError("Vui lòng nhập tên danh mục.", { name: "Bắt buộc" });
-  return prisma.$transaction(async (tx) => {
-    const max = await tx.category.aggregate({ _max: { sortOrder: true } });
-    const c = await tx.category.create({
-      data: { name, description: input.description?.trim() || null, sortOrder: (max._max.sortOrder ?? 0) + 1, createdById: actor.id, updatedById: actor.id },
-    });
-    await audit(tx, { actorId: actor.id, action: "category.create", entityType: "category", entityId: c.id, summary: `Tạo danh mục ${name}` });
-    return c;
-  });
+  const codePrefix = input.codePrefix.trim().toUpperCase();
+  const errors: Record<string, string> = {};
+  if (!name) errors.name = "Bắt buộc";
+  if (!PREFIX_RE.test(codePrefix)) errors.codePrefix = "1 đến 6 chữ cái in hoa, không dấu";
+  if (Object.keys(errors).length) throw new AppError("Vui lòng kiểm tra lại danh mục.", errors);
+  return { name, codePrefix };
 }
 
-export async function updateCategory(actor: CurrentUser, id: string, input: { name: string; description?: string; isActive: boolean }) {
-  ownerOnly(actor);
-  const name = input.name.trim();
-  if (!name) throw new AppError("Vui lòng nhập tên danh mục.", { name: "Bắt buộc" });
-  return prisma.$transaction(async (tx) => {
-    const c = await tx.category.update({
-      where: { id },
-      data: { name, description: input.description?.trim() || null, isActive: input.isActive, updatedById: actor.id },
-    });
-    await audit(tx, { actorId: actor.id, action: "category.update", entityType: "category", entityId: id, summary: `Sửa danh mục ${name}${input.isActive ? "" : " (ẩn)"}` });
-    return c;
+async function assertCategoryUnique(data: { name: string; codePrefix: string }, exceptId?: string) {
+  const clash = await prisma.category.findFirst({
+    where: { OR: [{ name: data.name }, { codePrefix: data.codePrefix }], ...(exceptId ? { NOT: { id: exceptId } } : {}) },
   });
+  if (clash?.name === data.name) throw new AppError("Tên danh mục đã có.", { name: "Đã có" });
+  if (clash) throw new AppError(`Tiền tố ${data.codePrefix} đang dùng cho danh mục ${clash.name}.`, { codePrefix: "Đã dùng" });
 }
 
-/** Swap sort order with the neighbour above or below. */
-export async function moveCategory(actor: CurrentUser, id: string, direction: "up" | "down") {
-  ownerOnly(actor);
+export async function createCategory(input: { name: string; codePrefix: string }) {
+  const data = cleanCategory(input);
+  await assertCategoryUnique(data);
+  const max = await prisma.category.aggregate({ _max: { sortOrder: true } });
+  return prisma.category.create({ data: { ...data, sortOrder: (max._max.sortOrder ?? 0) + 1 } });
+}
+
+/** Changing the prefix only affects products created afterwards; existing codes never change. */
+export async function updateCategory(id: string, input: { name: string; codePrefix: string; isVisible: boolean }) {
+  const data = cleanCategory(input);
+  await assertCategoryUnique(data, id);
+  return prisma.category.update({ where: { id }, data: { ...data, isVisible: input.isVisible } });
+}
+
+export async function setCategoryVisible(id: string, isVisible: boolean) {
+  return prisma.category.update({ where: { id }, data: { isVisible } });
+}
+
+export async function moveCategory(id: string, direction: "up" | "down") {
   const all = await prisma.category.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
   const idx = all.findIndex((c) => c.id === id);
-  const other = all[direction === "up" ? idx - 1 : idx + 1];
-  if (idx < 0 || !other) return;
-  await prisma.$transaction(async (tx) => {
-    for (const [i, c] of all.entries()) {
-      let order = i;
-      if (c.id === id) order = direction === "up" ? i - 1 : i + 1;
-      else if (c.id === other.id) order = idx;
-      await tx.category.update({ where: { id: c.id }, data: { sortOrder: order } });
-    }
-    await audit(tx, { actorId: actor.id, action: "category.move", entityType: "category", entityId: id, summary: `Đưa danh mục ${all[idx].name} ${direction === "up" ? "lên" : "xuống"}` });
-  });
+  const swap = direction === "up" ? idx - 1 : idx + 1;
+  if (idx < 0 || swap < 0 || swap >= all.length) return;
+  [all[idx], all[swap]] = [all[swap], all[idx]];
+  await prisma.$transaction(all.map((c, i) => prisma.category.update({ where: { id: c.id }, data: { sortOrder: i } })));
+}
+
+/** Categories are deleted only when no product, including archived ones, still belongs to them. */
+export async function deleteCategory(id: string) {
+  const category = await prisma.category.findUnique({ where: { id }, include: { _count: { select: { products: true } } } });
+  if (!category) throw new NotFoundError("Không tìm thấy danh mục.");
+  if (category._count.products) throw new AppError(`Không thể xóa danh mục vì còn ${category._count.products} sản phẩm. Hãy chuyển hoặc xóa các sản phẩm trước.`);
+  await prisma.category.delete({ where: { id } });
+  return category;
+}
+
+// ===== Product codes =====
+
+/**
+ * Next code for a prefix, safe under concurrency. The counter row is created on first use from the
+ * highest existing code with that prefix (so imported BO-054 continues at BO-055).
+ */
+export async function nextProductCode(tx: Tx, prefix: string): Promise<string> {
+  const rows = await tx.$queryRaw<{ last_seq: number }[]>`
+    INSERT INTO product_code_counters (prefix, last_seq)
+    VALUES (${prefix}, (
+      SELECT COALESCE(MAX(substring(code FROM '[0-9]+$')::int), 0) + 1
+      FROM products WHERE code LIKE ${prefix + "-%"}
+    ))
+    ON CONFLICT (prefix) DO UPDATE SET last_seq = product_code_counters.last_seq + 1
+    RETURNING last_seq`;
+  return formatProductCode(prefix, rows[0].last_seq);
+}
+
+/** Code the next product of a category would get (display only, not reserved). */
+export async function previewProductCode(categoryId: string): Promise<string | null> {
+  const cat = await prisma.category.findUnique({ where: { id: categoryId } });
+  if (!cat) return null;
+  const counter = await prisma.productCodeCounter.findUnique({ where: { prefix: cat.codePrefix } });
+  if (counter) return formatProductCode(cat.codePrefix, counter.lastSeq + 1);
+  const rows = await prisma.$queryRaw<{ n: number }[]>`
+    SELECT COALESCE(MAX(substring(code FROM '[0-9]+$')::int), 0) + 1 AS n FROM products WHERE code LIKE ${cat.codePrefix + "-%"}`;
+  return formatProductCode(cat.codePrefix, Number(rows[0].n));
 }
 
 // ===== Products =====
@@ -70,149 +101,162 @@ export async function moveCategory(actor: CurrentUser, id: string, direction: "u
 export interface ProductFilter {
   q?: string;
   categoryId?: string;
-  status?: ProductStatus | "ALL";
-  activeOnly?: boolean;
-  noPrice?: boolean;
+  visibility?: "visible" | "hidden" | "noprice";
 }
 
-export async function listProducts(f: ProductFilter, page = 1, pageSize = 60) {
+export async function listProducts(f: ProductFilter) {
   const q = f.q?.trim();
   const where: Prisma.ProductWhereInput = {
+    isArchived: false,
     ...(f.categoryId ? { categoryId: f.categoryId } : {}),
-    ...(f.noPrice ? { price: null } : {}),
-    ...(f.activeOnly ? { status: "ACTIVE" } : f.status && f.status !== "ALL" ? { status: f.status } : { status: { not: "ARCHIVED" } }),
+    ...(f.visibility === "visible" ? { isVisible: true } : f.visibility === "hidden" ? { isVisible: false } : f.visibility === "noprice" ? { price: null } : {}),
     ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { code: { contains: q, mode: "insensitive" } }] } : {}),
   };
-  const [rows, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy: [{ category: { sortOrder: "asc" } }, { code: "asc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: { category: { select: { name: true } }, images: { where: { isPrimary: true }, select: { url: true }, take: 1 } },
-    }),
-    prisma.product.count({ where }),
-  ]);
-  return { rows, total, pageSize };
+  return prisma.product.findMany({
+    where,
+    orderBy: [{ category: { sortOrder: "asc" } }, { code: "asc" }],
+    include: { category: { select: { name: true } }, images: { where: { isPrimary: true }, select: { url: true }, take: 1 } },
+  });
 }
 
-export async function productCountsByCategory() {
-  const groups = await prisma.product.groupBy({ by: ["categoryId"], where: { status: { not: "ARCHIVED" } }, _count: { _all: true } });
+export async function productCounts() {
+  const groups = await prisma.product.groupBy({ by: ["categoryId"], where: { isArchived: false }, _count: { _all: true } });
   return new Map(groups.map((g) => [g.categoryId, g._count._all]));
 }
 
-/** `includeCost` must be false for staff: cost price is removed here, not only hidden in the UI. */
-export async function getProduct(id: string, opts: { includeCost: boolean }) {
-  const p = await prisma.product.findUnique({
+export async function getProduct(id: string) {
+  return prisma.product.findUnique({
     where: { id },
-    include: {
-      category: true,
-      images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }] },
-      createdBy: { select: { name: true } },
-      updatedBy: { select: { name: true } },
-    },
+    include: { category: true, images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }] } },
   });
-  return p && !opts.includeCost ? { ...p, costPrice: null } : p;
 }
 
 export interface ProductInput {
-  code: string;
   name: string;
   categoryId: string;
-  description?: string;
+  price: number | null;
   size?: string;
   color?: string;
-  price: number | null;
-  costPrice: number | null;
-  fulfillmentMode: FulfillmentMode;
-  status: ProductStatus;
+  description?: string;
+  isVisible: boolean;
 }
 
 function cleanProduct(input: ProductInput) {
-  const code = input.code.trim().toUpperCase();
   const name = input.name.trim();
   const errors: Record<string, string> = {};
-  if (!/^[A-Z0-9][A-Z0-9-]{1,23}$/.test(code)) errors.code = "Mã gồm chữ, số, gạch ngang (2-24 ký tự)";
   if (!name) errors.name = "Bắt buộc";
   if (!input.categoryId) errors.categoryId = "Chọn danh mục";
-  if (input.price !== null && (!Number.isInteger(input.price) || input.price < 0)) errors.price = "Giá không hợp lệ";
-  if (input.costPrice !== null && (!Number.isInteger(input.costPrice) || input.costPrice < 0)) errors.costPrice = "Giá vốn không hợp lệ";
+  if (input.price !== null && (!Number.isInteger(input.price) || input.price < 0 || input.price > 2_000_000_000)) errors.price = "Giá không hợp lệ";
   if (Object.keys(errors).length) throw new AppError("Vui lòng kiểm tra lại thông tin sản phẩm.", errors);
   return {
-    code,
     name,
     categoryId: input.categoryId,
-    description: input.description?.trim() || null,
+    price: input.price,
     size: input.size?.trim() || null,
     color: input.color?.trim() || null,
-    price: input.price,
-    costPrice: input.costPrice,
-    fulfillmentMode: input.fulfillmentMode,
-    status: input.status,
+    description: input.description?.trim() || null,
+    isVisible: input.isVisible,
   };
 }
 
-export async function createProduct(actor: CurrentUser, input: ProductInput) {
-  ownerOnly(actor);
+/** The code is generated here from the category prefix; the form has no code field. */
+export async function createProduct(input: ProductInput) {
   const data = cleanProduct(input);
-  if (await prisma.product.findUnique({ where: { code: data.code } })) throw new AppError("Mã sản phẩm đã tồn tại.", { code: "Đã tồn tại" });
   return prisma.$transaction(async (tx) => {
-    const p = await tx.product.create({ data: { ...data, createdById: actor.id, updatedById: actor.id } });
-    await audit(tx, { actorId: actor.id, action: "product.create", entityType: "product", entityId: p.id, summary: `Tạo sản phẩm ${p.code} ${p.name}, giá ${formatMoney(p.price)}` });
-    return p;
+    const cat = await tx.category.findUnique({ where: { id: data.categoryId } });
+    if (!cat) throw new AppError("Danh mục không tồn tại.", { categoryId: "Chọn danh mục" });
+    const code = await nextProductCode(tx, cat.codePrefix);
+    return tx.product.create({ data: { ...data, code } });
   });
 }
 
-export async function updateProduct(actor: CurrentUser, id: string, input: ProductInput) {
-  ownerOnly(actor);
+export async function updateProduct(id: string, input: ProductInput) {
   const data = cleanProduct(input);
-  return prisma.$transaction(async (tx) => {
-    await lockProducts(tx, [id]);
-    const before = await tx.product.findUnique({ where: { id } });
-    if (!before) throw new NotFoundError("Không tìm thấy sản phẩm.");
-    if (data.code !== before.code && (await tx.product.findUnique({ where: { code: data.code } }))) {
-      throw new AppError("Mã sản phẩm đã tồn tại.", { code: "Đã tồn tại" });
-    }
-    if (data.fulfillmentMode === "MADE_TO_ORDER" && before.onHand > 0) {
-      throw new AppError(`Sản phẩm đang có ${before.onHand} trong kho. Điều chỉnh tồn về 0 trước khi chuyển sang Làm theo đơn.`, {
-        fulfillmentMode: "Còn hàng trong kho",
-      });
-    }
-    const p = await tx.product.update({ where: { id }, data: { ...data, updatedById: actor.id } });
-    const changes: string[] = [];
-    if (before.price !== p.price) changes.push(`giá ${formatMoney(before.price)} → ${formatMoney(p.price)}`);
-    if (before.status !== p.status) changes.push(`trạng thái ${before.status} → ${p.status}`);
-    if (before.fulfillmentMode !== p.fulfillmentMode) changes.push(`phương thức ${before.fulfillmentMode} → ${p.fulfillmentMode}`);
-    await audit(tx, {
-      actorId: actor.id,
-      action: "product.update",
-      entityType: "product",
-      entityId: id,
-      summary: `Sửa sản phẩm ${p.code}${changes.length ? `: ${changes.join(", ")}` : ""}`,
-    });
-    return p;
-  });
+  const exists = await prisma.product.findUnique({ where: { id } });
+  if (!exists) throw new NotFoundError("Không tìm thấy sản phẩm.");
+  return prisma.product.update({ where: { id }, data });
 }
 
-/** Products a new order can use: active, priced. */
-export async function searchOrderableProducts(q: string, take = 20) {
+export async function setProductVisible(id: string, isVisible: boolean) {
+  return prisma.product.update({ where: { id }, data: { isVisible } });
+}
+
+/** Archived products disappear everywhere except old orders (which keep their snapshot). */
+export async function archiveProduct(id: string) {
+  return prisma.product.update({ where: { id }, data: { isArchived: true, isVisible: false } });
+}
+
+/** Hard delete is reserved for products that have never been used in an order. */
+export async function deleteProduct(id: string) {
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: { images: { select: { storagePath: true } }, _count: { select: { orderItems: true } } },
+  });
+  if (!product) throw new NotFoundError("Không tìm thấy sản phẩm.");
+  if (product._count.orderItems) throw new AppError(`Không thể xóa ${product.code} vì sản phẩm đã có trong đơn hàng. Hãy ẩn khỏi web hoặc lưu trữ sản phẩm.`);
+
+  // Remove external files first so a storage failure leaves database rows available for retry.
+  await Promise.all(product.images.map((image) => storage().remove(image.storagePath)));
+  await prisma.$transaction(async (tx) => {
+    await tx.productImage.deleteMany({ where: { productId: id } });
+    await tx.product.delete({ where: { id } });
+  });
+  return product;
+}
+
+export interface QuickEditRow {
+  id: string;
+  name: string;
+  price: number | null;
+  isVisible: boolean;
+}
+
+/** "Sửa nhanh": save name, price and visibility of many products at once. */
+export async function quickUpdate(rows: QuickEditRow[]) {
+  if (rows.length > 500) throw new AppError("Tối đa 500 sản phẩm mỗi lần lưu.");
+  for (const r of rows) {
+    if (!r.name.trim()) throw new AppError("Tên sản phẩm không được để trống.");
+    if (r.price !== null && (!Number.isInteger(r.price) || r.price < 0 || r.price > 2_000_000_000)) throw new AppError(`Giá của "${r.name}" không hợp lệ.`);
+  }
+  await prisma.$transaction(rows.map((r) => prisma.product.update({ where: { id: r.id }, data: { name: r.name.trim(), price: r.price, isVisible: r.isVisible } })));
+  return rows.length;
+}
+
+/** Products the order form can pick from: every non-archived product (hidden ones too). */
+export async function searchOrderableProducts(q: string, options: { categoryId?: string; take?: number } = {}) {
   const term = q.trim();
   return prisma.product.findMany({
     where: {
-      status: "ACTIVE",
+      isArchived: false,
+      ...(options.categoryId ? { categoryId: options.categoryId } : {}),
       ...(term ? { OR: [{ name: { contains: term, mode: "insensitive" } }, { code: { contains: term, mode: "insensitive" } }] } : {}),
     },
-    orderBy: [{ category: { sortOrder: "asc" } }, { code: "asc" }],
-    take,
+    orderBy: [{ isVisible: "desc" }, { category: { sortOrder: "asc" } }, { code: "asc" }],
+    take: options.take ?? 100,
     select: {
       id: true,
       code: true,
       name: true,
       price: true,
-      fulfillmentMode: true,
-      onHand: true,
-      reserved: true,
       images: { where: { isPrimary: true }, select: { url: true }, take: 1 },
     },
   });
+}
+
+// ===== Public catalog =====
+
+/** What the public site shows: visible categories with their visible, non-archived products. */
+export async function publicCatalog() {
+  const categories = await prisma.category.findMany({
+    where: { isVisible: true },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    include: {
+      products: {
+        where: { isVisible: true, isArchived: false },
+        orderBy: { code: "asc" },
+        include: { images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }], select: { url: true } } },
+      },
+    },
+  });
+  return categories.filter((c) => c.products.length);
 }

@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mockup trang quản trị Bích Ngọc Florist (bản 2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<style>
+/* ===== Tokens (theo ảnh mẫu: nền lavender, thẻ pastel, nút đen) ===== */
+:root {
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bg-top: oklch(0.95 0.035 292);
+  --bg-bottom: oklch(0.985 0.01 292);
+  --surface: oklch(0.995 0.004 292);
+  --sunken: oklch(0.965 0.012 292);
+  --line: oklch(0.92 0.012 292);
+  --text: oklch(0.23 0.02 285);
+  --muted: oklch(0.5 0.02 285);
+  --ink: oklch(0.2 0.012 285);
+  --on-ink: oklch(0.99 0.004 292);
+  --accent: oklch(0.56 0.2 292);
+  --accent-hover: oklch(0.5 0.2 292);
+  --danger: oklch(0.52 0.18 22);
+  --danger-soft: oklch(0.95 0.03 22);
+
+  --lav: oklch(0.9 0.055 295);   --lav-ink: oklch(0.42 0.14 295);
+  --peach: oklch(0.92 0.055 50); --peach-ink: oklch(0.45 0.12 45);
+  --sky: oklch(0.92 0.045 235);  --sky-ink: oklch(0.42 0.1 240);
+  --mint: oklch(0.93 0.05 165);  --mint-ink: oklch(0.4 0.09 165);
+  --gray: oklch(0.93 0.008 285); --gray-ink: oklch(0.45 0.015 285);
+
+  --shadow: 0 1px 2px oklch(0.4 0.08 292 / 0.06), 0 4px 12px oklch(0.4 0.08 292 / 0.07), 0 16px 32px oklch(0.4 0.08 292 / 0.06);
+  --shadow-float: 0 8px 24px oklch(0.3 0.08 292 / 0.14), 0 2px 6px oklch(0.3 0.08 292 / 0.08);
+  --r-card: 16px;
+  --r-pill: 999px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --nav-h: 72px;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; color: var(--text); font: 400 1rem/1.5 var(--font); font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, var(--bg-top) 0, var(--bg-bottom) 420px) no-repeat, var(--bg-bottom);
+  min-height: 100dvh;
+}
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 1.75rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1rem; font-weight: 600; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+img { display: block; max-width: 100%; }
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+.xs { font-size: 0.75rem; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.icon-lg { width: 24px; height: 24px; }
+.icon-sm { width: 16px; height: 16px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ===== Shell ===== */
+.app { min-height: 100dvh; }
+.main { max-width: 560px; margin: 0 auto; padding: var(--s5) var(--s4) calc(var(--nav-h) + 48px + env(safe-area-inset-bottom, 0px)); }
+.main.has-sticky { padding-bottom: calc(var(--nav-h) + 140px); }
+.side { display: none; }
+.bnav {
+  position: fixed; left: var(--s4); right: var(--s4); bottom: calc(var(--s3) + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  height: var(--nav-h); max-width: 528px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+  background: var(--surface); border-radius: var(--r-pill); box-shadow: var(--shadow-float);
+}
+.bnav a { display: grid; place-items: center; height: 56px; color: var(--muted); border-radius: var(--r-pill); position: relative; transition: color 150ms var(--ease); }
+.bnav a:hover { color: var(--text); }
+.bnav a[aria-current="page"] { color: var(--accent); }
+.bnav a[aria-current="page"]::after { content: ""; position: absolute; bottom: 8px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.bnav .plus { width: 56px; height: 56px; justify-self: center; border-radius: 50%; background: var(--ink); color: var(--on-ink); box-shadow: 0 6px 16px oklch(0.2 0.02 285 / 0.3); }
+.bnav .plus:hover { color: var(--on-ink); transform: translateY(-2px); }
+.bnav .plus { transition: transform 150ms var(--ease); }
+
+@media (min-width: 1024px) {
+  .app { display: grid; grid-template-columns: 260px minmax(0, 1fr); }
+  .bnav { display: none; }
+  .main { max-width: 880px; padding: var(--s6) var(--s6) var(--s7); }
+  .main.has-sticky { padding-bottom: 140px; }
+  .side { display: flex; flex-direction: column; gap: var(--s5); position: sticky; top: 0; height: 100dvh; padding: var(--s5) var(--s4); background: oklch(0.985 0.012 292 / 0.7); }
+  .side .brand { display: flex; align-items: center; gap: var(--s3); padding: 0 var(--s2); font-weight: 700; }
+  .side nav { display: grid; gap: var(--s1); }
+  .side nav a { display: flex; align-items: center; gap: var(--s3); min-height: 44px; padding: 0 var(--s3); border-radius: var(--r-pill); color: var(--muted); font-weight: 500; transition: background-color 150ms var(--ease), color 150ms var(--ease); }
+  .side nav a:hover { background: var(--surface); color: var(--text); }
+  .side nav a[aria-current="page"] { background: var(--ink); color: var(--on-ink); }
+  .side .new { margin-top: auto; }
+}
+
+/* ===== Common ===== */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s5); }
+.avatar { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--peach); color: var(--peach-ink); font-weight: 700; flex: none; }
+.hello { display: flex; align-items: center; gap: var(--s3); }
+.hello small { display: block; color: var(--muted); font-size: 0.875rem; }
+.hello b { font-size: 1.125rem; }
+.round-btn { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); position: relative; transition: transform 150ms var(--ease); }
+.round-btn:hover { transform: translateY(-2px); }
+.round-btn .count { position: absolute; top: 6px; right: 6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--r-pill); background: var(--peach); color: var(--peach-ink); font-size: 0.75rem; font-weight: 700; line-height: 18px; text-align: center; }
+.back { display: inline-flex; align-items: center; gap: var(--s1); min-height: 44px; padding: 0 var(--s3) 0 var(--s2); margin-left: calc(-1 * var(--s2)); border-radius: var(--r-pill); color: var(--muted); font-weight: 500; }
+.back:hover { background: var(--surface); color: var(--text); }
+.section { margin-top: var(--s6); }
+.shead { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s3); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: 48px; padding: 0 var(--s5); border-radius: var(--r-pill); border: 1px solid transparent; font-weight: 600; white-space: nowrap; background: none; transition: background-color 150ms var(--ease), transform 100ms var(--ease); }
+.btn:active { transform: translateY(1px); }
+.btn-ink { background: var(--ink); color: var(--on-ink); }
+.btn-ink:hover { background: oklch(0.3 0.015 285); }
+.btn-light { background: var(--surface); border-color: var(--line); }
+.btn-light:hover { background: var(--sunken); }
+.btn-ghost { color: var(--accent); padding: 0 var(--s3); }
+.btn-ghost:hover { background: var(--lav); }
+.btn-danger { color: var(--danger); background: var(--danger-soft); }
+.btn-sm { min-height: 40px; padding: 0 var(--s4); font-size: 0.875rem; }
+.btn-block { width: 100%; }
+.btn-accent { width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 14px; background: var(--accent); color: var(--on-ink); }
+.btn-accent:hover { background: var(--accent-hover); }
+.select { min-height: 40px; padding: 0 36px 0 var(--s4); border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 16px; appearance: none; font-weight: 500; font-size: 0.875rem; }
+
+.chips { display: flex; gap: var(--s2); overflow-x: auto; scrollbar-width: none; padding: 2px var(--s4); margin: 0 calc(-1 * var(--s4)); }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; min-height: 40px; padding: 0 var(--s4); border-radius: var(--r-pill); border: 0; background: var(--sunken); color: var(--text); font-weight: 500; font-size: 0.875rem; transition: background-color 150ms var(--ease); }
+.chip:hover { background: var(--line); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); font-weight: 600; }
+
+.card { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow); }
+.pad { padding: var(--s4); }
+.pill { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 var(--s3); border-radius: var(--r-pill); font-size: 0.8125rem; font-weight: 600; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.st-NEW { background: var(--lav); color: var(--lav-ink); }
+.st-DELIVERING { background: var(--peach); color: var(--peach-ink); }
+.st-DONE { background: var(--mint); color: var(--mint-ink); }
+.st-CANCEL { background: var(--gray); color: var(--gray-ink); }
+.datechip { display: inline-flex; align-items: center; gap: var(--s2); min-height: 32px; padding: 0 var(--s3); border-radius: var(--r-pill); background: var(--sunken); font-size: 0.8125rem; font-weight: 600; }
+
+/* Overview cards */
+.ov { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+.ov a { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--s2); min-height: 132px; padding: 48px var(--s4) var(--s4); border-radius: var(--r-card); transition: transform 150ms var(--ease); overflow: hidden; }
+.ov a:hover { transform: translateY(-2px); }
+.ov .num { font-size: 1.75rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.ov .money { font-size: 1.25rem; }
+.ov .lbl { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 0.875rem; }
+.ov .flower { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; opacity: 0.55; }
+.ov-lav { background: var(--lav); color: var(--lav-ink); }
+.ov-peach { background: var(--peach); color: var(--peach-ink); }
+.ov-sky { background: var(--sky); color: var(--sky-ink); }
+.ov-mint { background: var(--mint); color: var(--mint-ink); }
+
+/* Shop-wide totals */
+.shop-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); margin-bottom: var(--s6); }
+.shop-total { position: relative; min-width: 0; min-height: 148px; padding: var(--s4); border-radius: var(--r-card); box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+.shop-total::after { content: ""; position: absolute; width: 104px; height: 104px; top: -44px; right: -32px; border: 18px solid currentColor; border-radius: 50%; opacity: 0.08; }
+.shop-total > * { position: relative; z-index: 1; }
+.shop-total-label { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; opacity: 0.9; }
+.shop-total strong { font-size: clamp(1.5rem, 6vw, 2.25rem); line-height: 1.08; letter-spacing: -0.035em; overflow-wrap: anywhere; }
+.shop-total small { font-size: 0.75rem; font-weight: 500; opacity: 0.9; }
+.shop-total-revenue { grid-column: 1 / -1; min-height: 160px; background: var(--ink); color: var(--on-ink); }
+.shop-total-tasks { background: var(--lav); color: var(--lav-ink); }
+.shop-total-cancelled { background: var(--peach); color: var(--peach-ink); }
+.shop-products-head { align-items: flex-end; }
+.shop-products-title { display: grid; gap: var(--s1); }
+.seg.shop-rank-switch .segbtn { justify-content: center; min-height: 44px; }
+.shop-product-list { display: grid; gap: var(--s2); padding: 0; margin: 0; list-style: none; }
+.shop-product-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(230px, auto); align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); }
+.shop-product-rank { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-weight: 700; }
+.shop-product-copy { min-width: 0; }
+.shop-product-copy b, .shop-product-copy small { display: block; }
+.shop-product-copy b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shop-product-copy small { color: var(--muted); font-size: 0.75rem; }
+.shop-product-stats { display: grid; grid-template-columns: minmax(72px, auto) minmax(118px, auto); gap: var(--s4); text-align: right; }
+.shop-product-stat { display: grid; gap: 2px; min-width: 0; }
+.shop-product-stat b { line-height: 1.2; overflow-wrap: anywhere; }
+.shop-product-stat small { color: var(--muted); font-size: 0.75rem; }
+.shop-product-stat.is-primary b { color: var(--accent); font-size: 1.0625rem; }
+
+@media (max-width: 560px) {
+  .shop-products-head { align-items: stretch; flex-direction: column; }
+  .shop-rank-switch { width: 100%; }
+  .shop-rank-switch .segbtn { flex: 1; }
+  .shop-product-row { grid-template-columns: 36px minmax(0, 1fr); }
+  .shop-product-copy b { display: -webkit-box; white-space: normal; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .shop-product-stats { grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); text-align: left; }
+}
+
+@media (max-width: 380px) {
+  .shop-totals { grid-template-columns: 1fr; }
+  .shop-total-revenue { grid-column: auto; }
+  .shop-total { min-height: 124px; }
+}
+
+/* Order cards */
+.olist { display: grid; gap: var(--s3); }
+.ocard { display: grid; gap: var(--s3); padding: var(--s4); position: relative; transition: transform 150ms var(--ease); }
+.ocard:hover { transform: translateY(-2px); }
+.ocard .row { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.ocard .name { font-weight: 700; font-size: 1.0625rem; line-height: 1.3; }
+.ocard .items { font-size: 0.875rem; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.ocard .money { display: flex; gap: var(--s4); font-size: 0.875rem; }
+.ocard .money b { font-weight: 700; }
+.ocard .owe { color: var(--danger); }
+.more-btn { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; border: 0; background: none; color: var(--muted); position: relative; z-index: 2; }
+.more-btn:hover { background: var(--sunken); color: var(--text); }
+.ocard-link { position: absolute; inset: 0; border-radius: var(--r-card); z-index: 1; }
+.ocard .datechip, .ocard .pill { position: relative; z-index: 2; pointer-events: none; }
+.menu { margin: 0; padding: var(--s2); border: 0; border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-float); min-width: 160px; inset: unset; position: fixed; }
+.menu button { display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 44px; padding: 0 var(--s3); border: 0; border-radius: 10px; background: none; text-align: left; font-weight: 500; }
+.menu button:hover { background: var(--sunken); }
+.menu .danger { color: var(--danger); }
+
+/* Calendar */
+.calhead { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); margin-bottom: var(--s4); }
+.calhead .title { display: flex; align-items: baseline; gap: var(--s2); background: none; border: 0; padding: var(--s2) 0; font-size: 1.125rem; font-weight: 700; white-space: nowrap; min-width: 0; }
+.calhead .title span { color: var(--muted); font-weight: 400; font-size: 1rem; }
+.navarrows { display: flex; gap: var(--s1); }
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; border: 0; background: none; color: var(--text); }
+.icon-btn:hover { background: var(--surface); }
+.seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--sunken); gap: 4px; }
+.seg button { white-space: nowrap; min-height: 36px; padding: 0 var(--s4); border: 0; border-radius: var(--r-pill); background: none; font-weight: 500; font-size: 0.875rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px oklch(0.4 0.08 292 / 0.12); }
+.month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: var(--s1); text-align: center; }
+.month .dow { font-size: 0.8125rem; color: var(--muted); padding: var(--s2) 0; font-weight: 500; }
+.day { position: relative; display: grid; place-items: center; height: 52px; min-width: 0; padding: 0; border: 0; background: none; font-weight: 500; border-radius: 50%; }
+.day .n { width: min(40px, 100%); aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; transition: background-color 150ms var(--ease); }
+.day:hover .n { background: var(--surface); }
+.day.out { color: oklch(0.75 0.015 285); }
+.day.today .n { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.day[aria-pressed="true"] .n { background: var(--ink); color: var(--on-ink); font-weight: 700; }
+.dots { position: absolute; bottom: 2px; display: flex; gap: 3px; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; }
+.month .dots { bottom: calc(-1 * var(--s1)); gap: var(--s1); z-index: 1; }
+.month .dots i { width: 8px; height: 8px; box-shadow: 0 0 0 2px var(--surface), 0 2px 4px oklch(0.3 0.08 292 / 0.2); }
+.d-NEW { background: var(--lav-ink); } .d-DELIVERING { background: var(--peach-ink); } .d-DONE { background: var(--mint-ink); } .d-CANCEL { background: oklch(0.7 0.01 285); }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s1); }
+.week .day { height: 72px; flex-direction: column; border-radius: var(--r-card); display: flex; justify-content: center; gap: 2px; }
+.week .day .w { font-size: 0.75rem; color: var(--muted); }
+.week .day[aria-pressed="true"] { background: var(--ink); }
+.week .day[aria-pressed="true"] .n { background: none; }
+.week .day[aria-pressed="true"] .w { color: oklch(0.8 0.01 285); }
+.week .day .dots { position: static; height: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin-top: var(--s3); font-size: 0.8125rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 8px; height: 8px; border-radius: 50%; }
+.picker { display: flex; gap: var(--s2); margin-bottom: var(--s4); }
+
+/* Day task list (theo ảnh mẫu 2) */
+.tasks { display: grid; }
+.task { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: var(--s3); align-items: start; padding: var(--s4) 0; border-top: 1px solid var(--line); color: inherit; }
+.task:first-child { border-top: 0; }
+.task:hover .tt { text-decoration: underline; }
+.task .kind { font-size: 0.8125rem; color: var(--muted); }
+.task .tt { font-weight: 600; line-height: 1.35; }
+.task .time { font-size: 0.8125rem; color: var(--muted); margin-top: 2px; }
+.task .ic { width: 22px; height: 22px; margin-top: 18px; }
+.task .ic.NEW { color: var(--lav-ink); } .task .ic.DELIVERING { color: var(--peach-ink); } .task .ic.DONE { color: var(--mint-ink); } .task .ic.CANCEL { color: oklch(0.7 0.01 285); }
+.task .amt { text-align: right; font-size: 0.875rem; margin-top: 18px; }
+.task .amt b { display: block; }
+.task.cancel .tt { text-decoration: line-through; color: var(--muted); }
+
+/* Summary */
+.sum { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+.sum div { padding: var(--s3) var(--s4); border-radius: 14px; background: var(--sunken); }
+.sum b { display: block; font-size: 1.125rem; }
+.sum span { font-size: 0.8125rem; color: var(--muted); }
+.permodel { display: grid; margin-top: var(--s3); }
+.permodel div { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s2) 0; border-top: 1px solid var(--line); }
+.permodel div:first-child { border-top: 0; }
+.permodel img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; }
+.permodel b { font-size: 1.125rem; }
+
+/* Detail */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); list-style: none; margin: 0; padding: 0; }
+.steps li { display: grid; gap: var(--s2); font-size: 0.8125rem; color: var(--muted); }
+.steps li::before { content: ""; height: 6px; border-radius: var(--r-pill); background: var(--line); }
+.steps li.done, .steps li.now { color: var(--text); }
+.steps li.done::before { background: var(--ink); }
+.steps li.now::before { background: var(--accent); }
+.steps li.now { font-weight: 600; }
+.kv { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--s2) var(--s3); margin: 0; }
+.kv dt { color: var(--muted); font-size: 0.875rem; padding-top: 1px; }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.kv .deadline { font-weight: 700; color: var(--accent); }
+.line { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3) 0; border-top: 1px solid var(--line); }
+.line:first-child { border-top: 0; }
+.line img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; background: var(--sunken); }
+.line .nm { font-weight: 600; line-height: 1.3; }
+.line .meta { font-size: 0.8125rem; color: var(--muted); }
+.line .note { font-size: 0.8125rem; color: var(--lav-ink); margin-top: 2px; }
+.moneybox { display: grid; gap: var(--s2); }
+.moneybox div { display: flex; justify-content: space-between; gap: var(--s3); }
+.moneybox .total { border-top: 1px solid var(--line); padding-top: var(--s3); margin-top: var(--s1); font-weight: 700; font-size: 1.125rem; }
+.moneybox .left { font-weight: 700; font-size: 1.375rem; color: var(--danger); }
+.moneybox .left.zero { color: var(--mint-ink); }
+.stack { display: grid; gap: var(--s3); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+
+/* Forms */
+.field { display: grid; gap: 6px; min-width: 0; }
+.field label, .label { font-size: 0.875rem; font-weight: 600; }
+.req { color: var(--danger); }
+.hint { font-size: 0.8125rem; color: var(--muted); }
+.input, .textarea, .fselect { width: 100%; min-height: 48px; padding: 0 var(--s4); border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-size: 1rem; }
+.textarea { padding: var(--s3) var(--s4); min-height: 88px; resize: vertical; }
+.input:focus-visible, .textarea:focus-visible, .fselect:focus-visible { outline-offset: 0; border-color: var(--accent); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+.found { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s3) var(--s4); border-radius: 14px; background: var(--lav); color: var(--lav-ink); }
+.picker-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px var(--s3); align-items: start; }
+.pick { min-width: 0; border: 0; background: none; padding: 0; text-align: left; }
+.pick img { width: 100%; aspect-ratio: 3 / 4; border-radius: 18px; object-fit: cover; transition: transform 150ms var(--ease); }
+.pick:hover img { transform: translateY(-2px); }
+.pick .nm { font-size: 0.9375rem; font-weight: 600; margin-top: var(--s2); line-height: 1.3; }
+.pick .pr { font-size: 0.875rem; font-weight: 700; color: var(--danger); }
+.qty { display: inline-flex; align-items: center; border-radius: var(--r-pill); background: var(--sunken); }
+.qty button { width: 40px; height: 40px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; }
+.qty button:hover { background: var(--line); }
+.qty output { min-width: 32px; text-align: center; font-weight: 700; }
+.selline { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: var(--s3); padding: var(--s3) 0; border-top: 1px solid var(--line); }
+.selline:first-child { border-top: 0; }
+.selline img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; }
+.selline .top { display: flex; justify-content: space-between; gap: var(--s2); }
+.selline .ctl { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s3); align-items: center; }
+.selline .ctl .input { min-height: 40px; font-size: 0.9375rem; }
+.sticky { position: fixed; left: var(--s4); right: var(--s4); bottom: calc(var(--nav-h) + var(--s5) + env(safe-area-inset-bottom, 0px)); z-index: 25; max-width: 528px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s3) var(--s3) var(--s3) var(--s5); border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--shadow-float); }
+.sticky .t { font-size: 0.75rem; color: var(--muted); }
+.sticky .v { font-weight: 700; font-size: 1.125rem; line-height: 1.2; }
+@media (min-width: 1024px) { .sticky { left: 260px; bottom: var(--s5); max-width: 816px; } }
+.switch { position: relative; width: 48px; height: 28px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; border-radius: var(--r-pill); background: var(--line); transition: background-color 150ms var(--ease); }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px oklch(0.3 0.03 285 / 0.25); transition: transform 150ms var(--ease); }
+.switch input:checked + span { background: var(--mint-ink); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Products */
+.pgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px var(--s3); align-items: start; }
+.pcard { overflow: hidden; display: grid; }
+.pcard-photo { display: block; width: 100%; aspect-ratio: 3 / 4; overflow: hidden; background: var(--sunken); }
+.pcard-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pcard .body { padding: var(--s3); display: grid; gap: 2px; }
+.pcard .nm { font-weight: 600; font-size: 0.9375rem; line-height: 1.3; }
+.pcard .code { font-size: 0.75rem; color: var(--muted); }
+.pcard .pr { font-weight: 700; }
+.pcard .vis { display: flex; align-items: center; justify-content: space-between; margin-top: var(--s2); font-size: 0.8125rem; color: var(--muted); }
+.pcard.hidden img { opacity: 0.45; }
+.tag { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--peach); color: var(--peach-ink); font-size: 0.75rem; font-weight: 600; width: fit-content; }
+.qe { display: grid; }
+.qerow { display: grid; grid-template-columns: 48px minmax(0, 1fr) 120px auto; gap: var(--s3); align-items: center; padding: var(--s3) 0; border-top: 1px solid var(--line); }
+.qerow:first-child { border-top: 0; }
+.qerow img { width: 48px; height: 60px; border-radius: 10px; object-fit: cover; }
+.qerow .input { min-height: 40px; font-size: 0.9375rem; padding: 0 var(--s3); }
+.qerow .code { font-size: 0.75rem; color: var(--muted); }
+@media (max-width: 479px) { .qerow { grid-template-columns: 48px minmax(0, 1fr) auto; } .qerow .price { grid-column: 2; } .qerow .switch { grid-row: 1 / span 2; grid-column: 3; } }
+.upl { display: flex; gap: var(--s2); }
+.upl img, .upl button { width: 88px; height: 110px; border-radius: 14px; object-fit: cover; }
+.upl button { border: 1.5px dashed var(--line); background: var(--surface); color: var(--muted); display: grid; place-items: center; font-size: 0.8125rem; }
+.autocode { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-radius: 14px; background: var(--sky); color: var(--sky-ink); font-size: 0.875rem; }
+
+/* Customers */
+.clist { display: grid; gap: var(--s2); }
+.crow { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); }
+.crow .avatar { width: 44px; height: 44px; font-size: 0.875rem; }
+.crow .nm { font-weight: 600; }
+.search { position: relative; }
+.search .icon { position: absolute; left: 16px; top: 14px; color: var(--muted); }
+.search .input { padding-left: 48px; border-radius: var(--r-pill); }
+
+/* Empty */
+.empty { display: grid; justify-items: center; gap: var(--s3); padding: var(--s7) var(--s4); text-align: center; }
+.empty .em-ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--mint); color: var(--mint-ink); }
+
+/* Dialog + toast */
+dialog.dlg { border: 0; padding: 0; width: calc(100% - 32px); max-width: 420px; margin: auto; border-radius: 20px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-float); }
+dialog.dlg::backdrop { background: oklch(0.2 0.03 285 / 0.45); }
+.dlg-b { padding: var(--s5); display: grid; gap: var(--s4); }
+.toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 40px); transform: translate(-50%, 8px); z-index: 50; padding: var(--s3) var(--s5); border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font-size: 0.875rem; opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease), transform 200ms var(--ease); white-space: nowrap; max-width: calc(100% - 32px); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+.demo { margin-bottom: var(--s4); padding: var(--s3); border: 1.5px dashed var(--line); border-radius: 14px; font-size: 0.8125rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+
+/* Login */
+.login { min-height: 100dvh; display: grid; place-items: center; padding: var(--s4); }
+.login .card { width: 100%; max-width: 400px; padding: var(--s6) var(--s5); display: grid; gap: var(--s5); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="menu" class="menu" popover></div>
+<dialog class="dlg" id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ===== Dữ liệu mẫu (chỉ để xem giao diện) ===== */
+const TODAY = '2026-10-27';
+const IMG = '../../legacy/images/';
+const CATS = [
+  { id: 'bo', name: 'Hoa bó', prefix: 'BO', visible: true, count: 54 },
+  { id: 'hop', name: 'Hoa hộp', prefix: 'HOP', visible: true, count: 3 },
+  { id: 'gio', name: 'Hoa giỏ', prefix: 'GIO', visible: true, count: 2 },
+  { id: 'ld', name: 'Hoa lồng đèn', prefix: 'LD', visible: true, count: 9 },
+];
+const P = {
+  'BO-001': { name: 'Hoa bó hồng pastel', cat: 'bo', price: 350000, img: 'bo/bo-01-1.jpg', visible: true },
+  'BO-002': { name: 'Bó cẩm tú cầu xanh', cat: 'bo', price: 420000, img: 'bo/bo-02-1.jpg', visible: true },
+  'BO-005': { name: 'Bó hoa sáp đỏ', cat: 'bo', price: 380000, img: 'bo/bo-05-1.jpg', visible: true },
+  'BO-010': { name: 'Bó baby trắng', cat: 'bo', price: 290000, img: 'bo/bo-10-1.jpg', visible: true },
+  'BO-012': { name: 'Hoa bó 12', cat: 'bo', price: null, img: 'bo/bo-12-1.jpg', visible: false },
+  'HOP-001': { name: 'Hộp hoa hồng đỏ', cat: 'hop', price: 650000, img: 'hop/hop-01-1.jpg', visible: true },
+  'GIO-001': { name: 'Giỏ hoa hướng dương', cat: 'gio', price: 520000, img: 'gio/gio-01-1.jpg', visible: true },
+  'LD-001': { name: 'Lồng đèn hoa lụa', cat: 'ld', price: 450000, img: 'longden/longden-01-1.jpg', visible: true },
+};
+const ST = { NEW: 'Mới', DELIVERING: 'Đang giao', DONE: 'Hoàn thành', CANCEL: 'Hủy' };
+const O = [
+  { id: 1, code: 'DH-261027-001', status: 'NEW', date: '2026-10-27', from: '09:00', to: '10:00', created: '27/10/2026 07:42', customer: 'Nguyễn Thu Hà', phone: '0912 345 678', rname: 'Phạm Minh Châu', rphone: '0988 123 456', type: 'Giao tận nơi', addr: '18 Nguyễn Chí Thanh, Đống Đa, Hà Nội', courier: 'Anh Hưng', channel: 'Zalo', items: [['BO-001', 1, 'Thêm thiệp chữ vàng']], ship: 30000, discount: 0, deposit: 200000, card: 'Chúc mừng sinh nhật mẹ!', note: 'Gọi trước 15 phút' },
+  { id: 2, code: 'DH-261026-004', status: 'DELIVERING', date: '2026-10-27', from: '11:00', to: '12:00', created: '26/10/2026 16:05', customer: 'Trần Quốc Bảo', phone: '0903 777 210', rname: 'Trần Quốc Bảo', rphone: '0903 777 210', type: 'Giao tận nơi', addr: '52 Lê Văn Lương, Thanh Xuân, Hà Nội', courier: 'Anh Hưng', channel: 'Facebook', items: [['BO-002', 1, ''], ['LD-001', 1, '']], ship: 50000, discount: 0, deposit: 400000, card: '', note: '' },
+  { id: 3, code: 'DH-261025-002', status: 'NEW', date: '2026-10-27', from: '14:00', to: '15:00', created: '25/10/2026 20:11', customer: 'Lê Thị Lan', phone: '0935 662 019', rname: 'Lê Thị Lan', rphone: '0935 662 019', type: 'Giao tận nơi', addr: 'Nhà hàng Hoa Sen, 9 Trần Duy Hưng, Cầu Giấy', courier: '', channel: 'Facebook', items: [['BO-005', 20, 'Trang trí bàn tiệc'], ['HOP-001', 1, '']], ship: 50000, discount: 350000, deposit: 3000000, card: '', note: 'Giao đến sảnh trước 14:30' },
+  { id: 4, code: 'DH-261026-006', status: 'DONE', date: '2026-10-27', from: '08:00', to: '', created: '26/10/2026 09:30', customer: 'Hoàng Mai', phone: '0944 100 288', rname: 'Hoàng Mai', rphone: '0944 100 288', type: 'Đến lấy', addr: '', courier: '', channel: 'Tại tiệm', items: [['BO-010', 1, '']], ship: 0, discount: 0, deposit: 290000, card: '', note: '' },
+  { id: 5, code: 'DH-261027-002', status: 'NEW', date: '2026-10-28', from: '15:00', to: '16:00', created: '27/10/2026 08:15', customer: 'Vũ Anh Tuấn', phone: '0966 208 331', rname: 'Vũ Anh Tuấn', rphone: '0966 208 331', type: 'Giao tận nơi', addr: '24 Hoàng Quốc Việt, Cầu Giấy', courier: '', channel: 'TikTok', items: [['BO-005', 6, ''], ['GIO-001', 2, 'Ruy băng vàng']], ship: 60000, discount: 0, deposit: 1000000, card: 'Chúc mừng khai trương', note: '' },
+  { id: 6, code: 'DH-261027-003', status: 'NEW', date: '2026-10-30', from: '', to: '', created: '27/10/2026 09:02', customer: 'Đỗ Hải Yến', phone: '0977 410 552', rname: 'Cô Thu Hằng', rphone: '0912 000 555', type: 'Giao tận nơi', addr: '7 Tây Hồ, Hà Nội', courier: '', channel: 'Điện thoại', items: [['BO-001', 2, '']], ship: 30000, discount: 0, deposit: 0, card: 'Gửi tặng cô giáo 20/11', note: '' },
+  { id: 7, code: 'DH-261024-001', status: 'CANCEL', date: '2026-10-29', from: '16:00', to: '17:00', created: '24/10/2026 10:20', customer: 'Phan Quỳnh', phone: '0902 553 417', rname: 'Phan Quỳnh', rphone: '0902 553 417', type: 'Giao tận nơi', addr: 'Long Biên, Hà Nội', courier: '', channel: 'Facebook', items: [['HOP-001', 1, '']], ship: 0, discount: 0, deposit: 0, card: '', note: 'Khách đổi ý' },
+  { id: 8, code: 'DH-261027-004', status: 'NEW', date: '2026-10-31', from: '10:00', to: '11:00', created: '27/10/2026 09:40', customer: 'Bùi Thanh Hương', phone: '0918 777 456', rname: 'Bùi Thanh Hương', rphone: '0918 777 456', type: 'Đến lấy', addr: '', courier: '', channel: 'Zalo', items: [['HOP-001', 1, ''], ['BO-010', 3, '']], ship: 0, discount: 20000, deposit: 500000, card: '', note: '' },
+  { id: 9, code: 'DH-261020-003', status: 'DONE', date: '2026-10-21', from: '17:00', to: '18:00', created: '20/10/2026 11:00', customer: 'Ngô Đức Minh', phone: '0983 662 740', rname: 'Ngô Thu Trang', rphone: '0975 212 003', type: 'Giao tận nơi', addr: 'Hà Đông, Hà Nội', courier: 'Anh Hưng', channel: 'Zalo', items: [['GIO-001', 1, '']], ship: 40000, discount: 0, deposit: 560000, card: '', note: '' },
+  { id: 10, code: 'DH-261027-005', status: 'NEW', date: '2026-11-05', from: '09:00', to: '', created: '27/10/2026 10:05', customer: 'Mai Phương', phone: '0936 410 120', rname: 'Mai Phương', rphone: '0936 410 120', type: 'Giao tận nơi', addr: 'Ecopark, Văn Giang', courier: '', channel: 'Facebook', items: [['LD-001', 4, '']], ship: 80000, discount: 0, deposit: 600000, card: '', note: '' },
+  { id: 11, code: 'DH-261022-001', status: 'DONE', date: '2026-10-24', from: '', to: '', created: '22/10/2026 14:30', customer: 'Trịnh Hà', phone: '0904 111 902', rname: 'Trịnh Hà', rphone: '0904 111 902', type: 'Đến lấy', addr: '', courier: '', channel: 'Tại tiệm', items: [['BO-002', 2, '']], ship: 0, discount: 0, deposit: 840000, card: '', note: '' },
+];
+const CUSTOMERS = ['Lê Thị Lan', 'Nguyễn Thu Hà', 'Trần Quốc Bảo', 'Vũ Anh Tuấn', 'Bùi Thanh Hương', 'Hoàng Mai', 'Đỗ Hải Yến', 'Mai Phương', 'Ngô Đức Minh', 'Trịnh Hà', 'Phan Quỳnh'];
+
+/* ===== Tiện ích ===== */
+const $ = (s, el = document) => el.querySelector(s);
+const fmt = n => n.toLocaleString('vi-VN') + 'đ';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sub = o => o.items.reduce((s, [c, q]) => s + (P[c].price || 0) * q, 0);
+const total = o => sub(o) - o.discount + o.ship;
+const left = o => Math.max(0, total(o) - o.deposit);
+const qtyOf = o => o.items.reduce((s, [, q]) => s + q, 0);
+const itemsText = o => o.items.map(([c, q]) => `${q} ${P[c].name}`).join(', ');
+const timeText = o => o.from ? (o.to ? `${o.from} - ${o.to}` : o.from) : 'Cả ngày';
+const D = s => new Date(s + 'T00:00:00Z');
+const ymd = d => d.toISOString().slice(0, 10);
+const addDays = (s, n) => ymd(new Date(D(s).getTime() + n * 864e5));
+const dowIdx = s => (D(s).getUTCDay() + 6) % 7; // Thứ Hai = 0
+const WD = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
+const WDS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const dm = s => `${s.slice(8, 10)}/${s.slice(5, 7)}`;
+const dmy = s => `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
+const weekStart = s => addDays(s, -dowIdx(s));
+const monthStart = s => s.slice(0, 8) + '01';
+const monthEnd = s => { const [y, m] = s.split('-').map(Number); return ymd(new Date(Date.UTC(y, m, 0))); };
+const inRange = (o, a, b) => o.date >= a && o.date <= b;
+const icon = (n, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
+const ICONS = {
+  home: '<path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6h-6v6H5a1 1 0 01-1-1z"/>',
+  cal: '<rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
+  flower: '<circle cx="12" cy="12" r="2.6"/><path d="M12 9.4C10.2 7 10.6 3.8 12 3c1.4.8 1.8 4 0 6.4zM14.6 12c2.4-1.8 5.6-1.4 6.4 0-.8 1.4-4 1.8-6.4 0zM12 14.6c1.8 2.4 1.4 5.6 0 6.4-1.4-.8-1.8-4 0-6.4zM9.4 12C7 13.8 3.8 13.4 3 12c.8-1.4 4-1.8 6.4 0z"/>',
+  users: '<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"/>',
+  bell: '<path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 21h4"/>',
+  next: '<path d="M9 6l6 6-6 6"/>', back: '<path d="M15 6l-6 6 6 6"/>', down: '<path d="M6 9l6 6 6-6"/>', up: '<path d="M6 15l6-6 6 6"/>',
+  more: '<circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13 7l4 4"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>', check: '<path d="M5 12l5 5L20 7"/>',
+  circle: '<circle cx="12" cy="12" r="8.5"/>', truck: '<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  done: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12l2.5 2.5 4.5-5"/>', ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>', phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/>',
+  tag: '<path d="M3 12V4a1 1 0 011-1h8l9 9-9 9-9-9z"/><circle cx="8" cy="8" r="1.5"/>', gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+};
+const STICON = { NEW: 'circle', DELIVERING: 'truck', DONE: 'done', CANCEL: 'ban' };
+
+/* ===== Trạng thái giao diện ===== */
+const state = { calDay: TODAY, calView: 'month', sumScope: 'month', homeFilter: 'NEW', homeRange: 'week', todayEmpty: false, quick: false, prodCat: 'all', orderCat: 'all', shopRank: 'quantity', form: null };
+
+/* ===== Khung ===== */
+const NAV = [['home', 'Tổng quan', 'home'], ['calendar', 'Lịch', 'cal'], ['new', 'Tạo đơn', 'plus'], ['products', 'Sản phẩm', 'flower'], ['customers', 'Khách hàng', 'users']];
+const section = r => ({ today: 'home', order: 'home', settings: 'home', 'product-new': 'products', categories: 'products', customer: 'customers' }[r] || r);
+function shell(r, html, sticky = false) {
+  const cur = section(r);
+  const side = NAV.filter(n => n[0] !== 'new').map(([id, l, ic]) => `<a href="#/${id}" ${cur === id ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('');
+  const bottom = NAV.map(([id, l, ic]) => id === 'new'
+    ? `<a class="plus" href="#/new" aria-label="Tạo đơn mới">${icon('plus', 'icon-lg')}</a>`
+    : `<a href="#/${id}" aria-label="${l}" ${cur === id ? 'aria-current="page"' : ''}>${icon(ic, 'icon-lg')}</a>`).join('');
+  return `<div class="app">
+    <aside class="side" aria-label="Điều hướng chính">
+      <div class="brand"><span class="avatar">BN</span>Bích Ngọc Florist</div>
+      <nav>${side}<a href="#/settings" ${r === 'settings' ? 'aria-current="page"' : ''}>${icon('gear')}Thông tin shop</a></nav>
+      <a class="btn btn-ink new" href="#/new">${icon('plus')}Tạo đơn</a>
+    </aside>
+    <main class="main ${sticky ? 'has-sticky' : ''}" id="main">${html}</main>
+    <nav class="bnav" aria-label="Điều hướng chính">${bottom}</nav>
+  </div>`;
+}
+
+/* ===== Thành phần ===== */
+const pill = s => `<span class="pill st-${s}">${ST[s]}</span>`;
+function orderCard(o) {
+  return `<div class="card ocard">
+    <a class="ocard-link" href="#/order/${o.id}" aria-label="Xem đơn ${o.code} của ${esc(o.customer)}"></a>
+    <div class="row"><span class="datechip">${icon('cal', 'icon-sm')}${dm(o.date)} · ${timeText(o)}</span><button class="more-btn" type="button" data-act="menu" data-id="${o.id}" aria-label="Thao tác với đơn ${o.code}">${icon('more')}</button></div>
+    <div><div class="name">${esc(o.customer)}</div><div class="items">${qtyOf(o)} sản phẩm · ${esc(itemsText(o))}</div></div>
+    <div class="row"><span class="money"><span>Tổng <b>${fmt(total(o))}</b></span>${left(o) ? `<span class="owe">Còn <b>${fmt(left(o))}</b></span>` : '<span class="muted">Đã thu đủ</span>'}</span>${pill(o.status)}</div>
+  </div>`;
+}
+function task(o) {
+  return `<a class="task ${o.status === 'CANCEL' ? 'cancel' : ''}" href="#/order/${o.id}">
+    ${icon(STICON[o.status], 'ic ' + o.status)}
+    <div><div class="kind">${ST[o.status]} · ${o.type}</div><div class="tt">${esc(o.customer)} · ${esc(itemsText(o))}</div><div class="time">${timeText(o)}${o.addr ? ' · ' + esc(o.addr) : ''}</div></div>
+    <div class="amt"><b>${fmt(total(o))}</b>${left(o) && o.status !== 'CANCEL' ? `<span class="muted">Còn ${fmt(left(o))}</span>` : ''}</div>
+  </a>`;
+}
+function summary(a, b, label) {
+  const list = O.filter(o => o.status === 'NEW' && inRange(o, a, b));
+  const t = list.reduce((s, o) => s + total(o), 0), dep = list.reduce((s, o) => s + o.deposit, 0);
+  const per = {};
+  list.forEach(o => o.items.forEach(([c, q]) => per[c] = (per[c] || 0) + q));
+  const rows = Object.entries(per).sort((x, y) => y[1] - x[1]);
+  return `<section class="card pad section" aria-labelledby="h-sum">
+    <div class="shead"><h2 id="h-sum">Tổng hợp cần làm</h2><span class="muted small">${label}</span></div>
+    <div class="seg" role="group" aria-label="Khoảng tổng hợp" style="margin-bottom:12px">${[['day', 'Ngày'], ['week', 'Tuần'], ['month', 'Tháng']].map(([k, l]) => `<button type="button" data-act="scope" data-v="${k}" aria-pressed="${state.sumScope === k}">${l}</button>`).join('')}</div>
+    <div class="sum">
+      <div><b>${list.length}</b><span>Đơn mới cần làm</span></div>
+      <div><b>${fmt(t)}</b><span>Tổng tiền</span></div>
+      <div><b>${fmt(dep)}</b><span>Đã cọc</span></div>
+      <div><b style="color:var(--danger)">${fmt(t - dep)}</b><span>Còn lại</span></div>
+    </div>
+    ${rows.length ? `<h3 style="margin-top:16px">Cần làm theo mẫu</h3><div class="permodel">${rows.map(([c, q]) => `<div><img src="${IMG}${P[c].img}" alt="" width="40" height="40" loading="lazy"><span>${esc(P[c].name)}<br><span class="muted xs">${c}</span></span><b>${q}</b></div>`).join('')}</div>` : '<p class="muted small" style="margin-top:12px">Không có đơn mới trong khoảng này.</p>'}
+    <p class="muted xs" style="margin-top:12px">Chỉ tính đơn Mới. Đơn Đang giao, Hoàn thành và Hủy không nằm trong tổng.</p>
+  </section>`;
+}
+
+/* ===== Màn hình ===== */
+const V = {
+  login() {
+    return `<div class="login"><div class="card">
+      <div><span class="avatar" style="margin-bottom:16px">BN</span><h1>Đăng nhập</h1><p class="muted" style="margin-top:4px">Trang quản lý của Bích Ngọc Florist</p></div>
+      <form class="stack" onsubmit="event.preventDefault(); location.hash='#/home'">
+        <div class="field"><label for="u">Tên đăng nhập</label><input class="input" id="u" autocomplete="username" value="chushop"></div>
+        <div class="field"><label for="pw">Mật khẩu</label><input class="input" id="pw" type="password" autocomplete="current-password" value="matkhaumau"></div>
+        <button class="btn btn-ink btn-block" type="submit">Đăng nhập</button>
+      </form></div></div>`;
+  },
+
+  home() {
+    const todayN = O.filter(o => o.date === TODAY && o.status !== 'CANCEL').length;
+    const ws = weekStart(TODAY), we = addDays(ws, 6);
+    const weekN = O.filter(o => inRange(o, ws, we) && o.status !== 'CANCEL').length;
+    const newList = O.filter(o => o.status === 'NEW');
+    const owe = newList.reduce((s, o) => s + left(o), 0);
+    const rng = state.homeRange === 'week' ? [ws, we] : state.homeRange === 'month' ? [monthStart(TODAY), monthEnd(TODAY)] : ['0000', '9999'];
+    const inR = O.filter(o => inRange(o, rng[0], rng[1]));
+    const cnt = s => inR.filter(o => o.status === s).length;
+    const list = inR.filter(o => o.status === state.homeFilter).sort((a, b) => (a.date + a.from).localeCompare(b.date + b.from));
+    const fl = `<svg class="flower" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">${ICONS.flower}</svg>`;
+    return `
+      <div class="topbar">
+        <a class="hello" href="#/settings" aria-label="Mở Thông tin shop: Bích Ngọc Florist"><span class="avatar">BN</span><span><small>Thông tin shop</small><b>Bích Ngọc Florist</b></span>${icon('gear', 'icon-sm')}</a>
+        <a class="round-btn" href="#/today" aria-label="${todayN} đơn hôm nay">${icon('bell')}${todayN ? `<span class="count">${todayN}</span>` : ''}</a>
+      </div>
+      <div class="shead"><h1>Tổng quan</h1><span class="muted small">${WD[dowIdx(TODAY)]}, ${dmy(TODAY)}</span></div>
+      <div class="ov">
+        <a class="ov-lav" href="#/today">${fl}<span class="num">${todayN}</span><span class="lbl">Hôm nay ${icon('next', 'icon-sm')}</span></a>
+        <a class="ov-peach" href="#/calendar" data-act="go-week">${fl}<span class="num">${weekN}</span><span class="lbl">Tuần này ${icon('next', 'icon-sm')}</span></a>
+        <a class="ov-sky" href="#/home" data-act="filter-new">${fl}<span class="num">${newList.length}</span><span class="lbl">Cần làm ${icon('next', 'icon-sm')}</span></a>
+        <a class="ov-mint" href="#/calendar">${fl}<span class="num money">${fmt(owe)}</span><span class="lbl">Tiền cần thu ${icon('next', 'icon-sm')}</span></a>
+      </div>
+      <section class="section" aria-labelledby="h-up">
+        <div class="shead"><h2 id="h-up">Đơn hàng</h2>
+          <label class="sr" for="range">Khoảng thời gian</label>
+          <select class="select" id="range" data-act="range">${[['week', 'Tuần này'], ['month', 'Tháng này'], ['all', 'Tất cả']].map(([k, l]) => `<option value="${k}" ${state.homeRange === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        </div>
+        <div class="chips" role="group" aria-label="Lọc theo trạng thái" style="margin-bottom:12px">
+          ${['NEW', 'DELIVERING', 'DONE', 'CANCEL'].map(s => `<button class="chip" type="button" data-act="hfilter" data-v="${s}" aria-pressed="${state.homeFilter === s}">${ST[s]} (${cnt(s)})</button>`).join('')}
+        </div>
+        <div class="olist">${list.length ? list.map(orderCard).join('') : `<div class="card empty"><p class="muted">Không có đơn ${ST[state.homeFilter].toLowerCase()} trong khoảng này.</p></div>`}</div>
+      </section>`;
+  },
+
+  today() {
+    const list = state.todayEmpty ? [] : O.filter(o => o.date === TODAY && o.status !== 'CANCEL').sort((a, b) => (a.from || '99').localeCompare(b.from || '99'));
+    const t = list.reduce((s, o) => s + total(o), 0), l = list.reduce((s, o) => s + (o.status === 'DONE' ? 0 : left(o)), 0);
+    return `
+      <div class="demo">Chỉ có trong mockup: <button class="chip" type="button" data-act="toggle-empty" aria-pressed="${state.todayEmpty}">Xem khi hôm nay không có đơn</button></div>
+      <a class="back" href="#/home">${icon('back')}Tổng quan</a>
+      <div class="shead" style="margin-top:8px"><div><h1>Hôm nay</h1><p class="muted" style="margin-top:4px">${WD[dowIdx(TODAY)]}, ${dmy(TODAY)}</p></div><a class="btn-accent btn" href="#/new" aria-label="Tạo đơn">${icon('plus')}</a></div>
+      ${list.length ? `
+        <div class="sum" style="margin:16px 0"><div><b>${list.length}</b><span>Đơn cần giao</span></div><div><b style="color:var(--danger)">${fmt(l)}</b><span>Còn phải thu hôm nay</span></div></div>
+        <div class="card pad"><div class="tasks">${list.map(task).join('')}</div></div>`
+      : `<div class="card empty" style="margin-top:16px"><span class="em-ic">${icon('sun', 'icon-lg')}</span><h2>Hôm nay không có đơn</h2><p class="muted small">Xem lịch để chuẩn bị cho những ngày tới.</p><a class="btn btn-ink" href="#/calendar">Mở lịch</a></div>`}`;
+  },
+
+  calendar() {
+    const d = state.calDay;
+    const head = `<div class="calhead">
+        <button class="title" type="button" data-act="picker" aria-expanded="${!!state.picker}">Tháng ${+d.slice(5, 7)}, ${d.slice(0, 4)}${icon('down', 'icon-sm')}</button>
+        <div class="navarrows"><button class="icon-btn" type="button" data-act="prev" aria-label="${state.calView === 'month' ? 'Tháng trước' : 'Tuần trước'}">${icon('back')}</button><button class="icon-btn" type="button" data-act="next" aria-label="${state.calView === 'month' ? 'Tháng sau' : 'Tuần sau'}">${icon('next')}</button></div>
+      </div>
+      ${state.picker ? `<div class="picker"><label class="sr" for="pm">Tháng</label><select class="select" id="pm" data-act="pick-m">${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${+d.slice(5, 7) === i + 1 ? 'selected' : ''}>Tháng ${i + 1}</option>`).join('')}</select>
+        <label class="sr" for="py">Năm</label><select class="select" id="py" data-act="pick-y">${[2025, 2026, 2027].map(y => `<option ${+d.slice(0, 4) === y ? 'selected' : ''}>${y}</option>`).join('')}</select>
+        <button class="btn btn-light btn-sm" type="button" data-act="go-today">Hôm nay</button></div>` : ''}
+      <div class="seg" role="group" aria-label="Kiểu xem" style="margin-bottom:12px">${[['month', 'Tháng'], ['week', 'Tuần']].map(([k, l]) => `<button type="button" data-act="view" data-v="${k}" aria-pressed="${state.calView === k}">${l}</button>`).join('')}</div>`;
+    const dots = day => { const ss = O.filter(o => o.date === day).map(o => o.status); return ss.length ? `<span class="dots" aria-hidden="true">${ss.map(s => `<i class="d-${s}"></i>`).join('')}</span>` : ''; };
+    const cnt = day => O.filter(o => o.date === day).length;
+    const dayBtn = (day, extra = '') => `<button class="day ${day === TODAY ? 'today' : ''} ${extra}" type="button" data-act="day" data-v="${day}" aria-pressed="${day === d}" aria-label="${WD[dowIdx(day)]} ${dmy(day)}${cnt(day) ? `, ${cnt(day)} đơn` : ''}">`;
+    let grid;
+    if (state.calView === 'month') {
+      const ms = monthStart(d), start = addDays(ms, -dowIdx(ms));
+      const me = monthEnd(d), end = addDays(me, 6 - dowIdx(me));
+      const cells = [];
+      for (let x = start; x <= end; x = addDays(x, 1)) cells.push(`${dayBtn(x, x.slice(0, 7) !== d.slice(0, 7) ? 'out' : '')}<span class="n">${+x.slice(8)}</span>${dots(x)}</button>`);
+      grid = `<div class="month">${WDS.map(w => `<span class="dow">${w}</span>`).join('')}${cells.join('')}</div>`;
+    } else {
+      const ws = weekStart(d);
+      grid = `<div class="week">${Array.from({ length: 7 }, (_, i) => { const x = addDays(ws, i); return `${dayBtn(x)}<span class="w">${WDS[i]}</span><span class="n">${+x.slice(8)}</span>${dots(x)}</button>`; }).join('')}</div>`;
+    }
+    const legend = `<div class="legend">${['NEW', 'DELIVERING', 'DONE', 'CANCEL'].map(s => `<span><i class="d-${s}"></i>${ST[s]}</span>`).join('')}</div>`;
+    const dayList = O.filter(o => o.date === d).sort((a, b) => (a.from || '99').localeCompare(b.from || '99'));
+    const scope = state.sumScope;
+    const [a, b, lbl] = scope === 'day' ? [d, d, dmy(d)] : scope === 'week' ? [weekStart(d), addDays(weekStart(d), 6), `${dm(weekStart(d))} - ${dm(addDays(weekStart(d), 6))}`] : [monthStart(d), monthEnd(d), `Tháng ${+d.slice(5, 7)}/${d.slice(0, 4)}`];
+    return `
+      <div class="card pad">${head}${grid}${legend}</div>
+      <section class="section" aria-labelledby="h-day">
+        <div class="shead"><h2 id="h-day">${d === TODAY ? 'Đơn hôm nay' : `Đơn ngày ${dm(d)}`}</h2><a class="btn btn-accent" href="#/new" aria-label="Tạo đơn cho ngày ${dm(d)}">${icon('plus')}</a></div>
+        <div class="card pad">${dayList.length ? `<div class="tasks">${dayList.map(task).join('')}</div>` : `<p class="muted" style="padding:16px 0;text-align:center">Ngày này chưa có đơn.</p>`}</div>
+      </section>
+      ${summary(a, b, lbl)}`;
+  },
+
+  order(id) {
+    const o = O.find(x => x.id === +id); if (!o) return '<p>Không tìm thấy đơn.</p>';
+    const flow = ['NEW', 'DELIVERING', 'DONE'], idx = flow.indexOf(o.status);
+    const next = { NEW: ['DELIVERING', 'Bắt đầu giao'], DELIVERING: ['DONE', 'Hoàn thành đơn'] }[o.status];
+    const prev = { DELIVERING: 'NEW', DONE: 'DELIVERING' }[o.status];
+    return `
+      <a class="back" href="#/home">${icon('back')}Quay lại</a>
+      <div class="shead" style="margin-top:8px"><div><h1>${esc(o.customer)}</h1><p class="muted small" style="margin-top:4px">${o.code} · Kênh ${o.channel}</p></div><div class="actions" style="align-items:center;flex-wrap:nowrap">${pill(o.status)}<button class="more-btn" type="button" data-act="menu" data-id="${o.id}" aria-label="Thao tác khác">${icon('more')}</button></div></div>
+      <div class="card pad stack">
+        ${idx >= 0 ? `<ol class="steps" aria-label="Tiến trình">${flow.map((s, k) => `<li class="${k < idx ? 'done' : k === idx ? 'now' : ''}">${ST[s]}</li>`).join('')}</ol>` : `<p class="small muted">Đơn đã hủy. ${esc(o.note)}</p>`}
+        <div class="actions">
+          ${next ? `<button class="btn btn-ink" type="button" data-act="status" data-id="${o.id}" data-v="${next[0]}">${next[1]}</button>` : ''}
+          ${prev ? `<button class="btn btn-light" type="button" data-act="status" data-id="${o.id}" data-v="${prev}">Quay lại bước trước</button>` : ''}
+          ${o.status === 'CANCEL' ? `<button class="btn btn-light" type="button" data-act="status" data-id="${o.id}" data-v="NEW">Khôi phục về Mới</button>` : ''}
+          <a class="btn btn-light" href="#/new" data-act="edit">${icon('edit', 'icon-sm')}Sửa</a>
+        </div>
+      </div>
+      <section class="section"><div class="card pad"><h2 style="margin-bottom:12px">Thời gian</h2><dl class="kv">
+        <dt>Hạn giao</dt><dd class="deadline">${WD[dowIdx(o.date)]}, ${dmy(o.date)} · ${timeText(o)}</dd>
+        <dt>Tạo lúc</dt><dd>${o.created}</dd></dl></div></section>
+      <section class="section"><div class="card pad"><h2 style="margin-bottom:12px">Khách hàng</h2><dl class="kv">
+        <dt>Người đặt</dt><dd><a href="#/customer/${encodeURIComponent(o.customer)}" style="font-weight:600">${esc(o.customer)}</a> · <a href="tel:${o.phone.replace(/\s/g, '')}">${o.phone}</a></dd>
+        <dt>Người nhận</dt><dd>${esc(o.rname)} · ${o.rphone}</dd>
+        <dt>Hình thức</dt><dd>${o.type}</dd>
+        ${o.addr ? `<dt>Địa chỉ</dt><dd>${esc(o.addr)}</dd>` : ''}
+        ${o.courier ? `<dt>Người giao</dt><dd>${esc(o.courier)}</dd>` : ''}
+      </dl></div></section>
+      <section class="section"><div class="card pad"><div class="shead"><h2>Sản phẩm</h2><span class="muted small">${qtyOf(o)} sản phẩm</span></div>
+        ${o.items.map(([c, q, n]) => `<div class="line"><img src="${IMG}${P[c].img}" alt="" width="56" height="56" loading="lazy"><div><div class="nm">${esc(P[c].name)}</div><div class="meta">${c} · ${fmt(P[c].price)} × ${q}</div>${n ? `<div class="note">${esc(n)}</div>` : ''}</div><b>${fmt(P[c].price * q)}</b></div>`).join('')}
+      </div></section>
+      ${o.card || o.note ? `<section class="section"><div class="card pad"><h2 style="margin-bottom:12px">Ghi chú</h2><dl class="kv">${o.card ? `<dt>Lời chúc</dt><dd>${esc(o.card)}</dd>` : ''}${o.note ? `<dt>Ghi chú</dt><dd>${esc(o.note)}</dd>` : ''}</dl></div></section>` : ''}
+      <section class="section"><div class="card pad"><h2 style="margin-bottom:12px">Thanh toán</h2><div class="moneybox">
+        <div><span class="muted">Tạm tính</span><span>${fmt(sub(o))}</span></div>
+        <div><span class="muted">Giảm giá</span><span>${o.discount ? '-' + fmt(o.discount) : '0đ'}</span></div>
+        <div><span class="muted">Phí ship</span><span>${fmt(o.ship)}</span></div>
+        <div class="total"><span>Tổng tiền</span><span>${fmt(total(o))}</span></div>
+        <div><span class="muted">Đã cọc</span><span>${fmt(o.deposit)}</span></div>
+        <div><span class="muted">Còn lại</span><span class="left ${left(o) ? '' : 'zero'}">${fmt(left(o))}</span></div>
+      </div></div></section>`;
+  },
+
+  new() {
+    const f = state.form ??= { phone: '0935 662 019', found: true, lines: [['BO-005', 20, 'Trang trí bàn tiệc'], ['HOP-001', 1, '']], type: 'DELIVERY', same: true, ship: 50000, discount: 350000, deposit: 3000000, channel: 'Facebook' };
+    const s = f.lines.reduce((a, [c, q]) => a + (P[c].price || 0) * q, 0), t = s - f.discount + f.ship;
+    const pickable = Object.entries(P).filter(([, p]) => state.orderCat === 'all' || p.cat === state.orderCat);
+    const categoryChips = `<div class="chips" role="group" aria-label="Lọc mẫu theo danh mục">${[['all', 'Tất cả'], ...CATS.map(c => [c.id, c.name])].map(([k, l]) => `<button class="chip" type="button" data-act="ordercat" data-v="${k}" aria-pressed="${state.orderCat === k}">${l}</button>`).join('')}</div>`;
+    return `
+      <a class="back" href="#/home">${icon('back')}Hủy</a>
+      <h1 style="margin:8px 0 16px">Tạo đơn mới</h1>
+      <div class="stack">
+        <section class="card pad stack" aria-labelledby="f1"><h2 id="f1">Khách hàng</h2>
+          <div class="field"><label for="ph">Số điện thoại <span class="req">*</span></label><input class="input" id="ph" type="tel" inputmode="tel" value="${f.phone}"><span class="hint">Nhập số để tìm khách cũ. Khách mới sẽ được tạo khi lưu.</span></div>
+          <div class="found"><span><b>Lê Thị Lan</b><br><span class="small">Khách cũ · 6 đơn</span></span>${icon('check')}</div>
+          <div class="field"><span class="label">Kênh đặt</span><div class="chips">${['Facebook', 'Zalo', 'TikTok', 'Điện thoại', 'Tại tiệm'].map(c => `<button class="chip" type="button" data-act="channel" data-v="${c}" aria-pressed="${f.channel === c}">${c}</button>`).join('')}</div></div>
+        </section>
+        <section class="card pad stack" aria-labelledby="f2"><h2 id="f2">Sản phẩm</h2>
+          <div class="field"><span class="label">Danh mục</span>${categoryChips}</div>
+          <div class="search"><span>${icon('search')}</span><label class="sr" for="ps">Tìm mẫu</label><input class="input" id="ps" placeholder="Tìm mẫu theo tên hoặc mã"></div>
+          <div class="picker-grid" role="group" aria-label="Chạm để thêm mẫu">${pickable.map(([c, p]) => `<button class="pick" type="button" data-act="add" data-v="${c}"><img src="${IMG}${p.img}" alt="" width="300" height="400" loading="lazy"><div class="nm">${esc(p.name)}</div><div class="pr">${p.price === null ? 'Liên hệ báo giá' : fmt(p.price)}</div></button>`).join('')}</div>
+          <div>${f.lines.map(([c, q, n], i) => `<div class="selline"><img src="${IMG}${P[c].img}" alt="" width="56" height="56"><div class="top"><div><b>${esc(P[c].name)}</b><div class="muted xs">${c} · ${P[c].price === null ? 'Giá báo khách' : fmt(P[c].price)}</div></div><b>${P[c].price === null ? 'Chưa nhập giá' : fmt(P[c].price * q)}</b></div>
+            <div class="ctl"><div class="qty" role="group" aria-label="Số lượng ${esc(P[c].name)}"><button type="button" data-act="qty" data-i="${i}" data-d="-1" aria-label="Giảm">${icon(q > 1 ? 'minus' : 'trash', 'icon-sm')}</button><output>${q}</output><button type="button" data-act="qty" data-i="${i}" data-d="1" aria-label="Tăng">${icon('plus', 'icon-sm')}</button></div>${P[c].price === null ? `<label class="sr" for="lp${i}">Đơn giá</label><input class="input" id="lp${i}" inputmode="numeric" placeholder="Nhập giá đã báo khách">` : `<label class="sr" for="ln${i}">Ghi chú dòng</label><input class="input" id="ln${i}" placeholder="Ghi chú cho mẫu này" value="${esc(n)}">`}</div></div>`).join('')}</div>
+        </section>
+        <section class="card pad stack" aria-labelledby="f3"><h2 id="f3">Giao nhận</h2>
+          <div class="seg" role="group" aria-label="Hình thức nhận">${[['DELIVERY', 'Giao tận nơi'], ['PICKUP', 'Đến lấy']].map(([k, l]) => `<button type="button" data-act="type" data-v="${k}" aria-pressed="${f.type === k}">${l}</button>`).join('')}</div>
+          <div class="field"><label for="dd">Ngày giao (hạn chót) <span class="req">*</span></label><input class="input" id="dd" type="date" value="2026-10-27"></div>
+          <div class="row2"><div class="field"><label for="tf">Từ giờ</label><input class="input" id="tf" type="time" value="14:00"></div><div class="field"><label for="tt">Đến giờ</label><input class="input" id="tt" type="time" value="15:00"></div></div>
+          ${f.type === 'DELIVERY' ? `<div class="field"><label for="ad">Địa chỉ giao</label><input class="input" id="ad" value="Nhà hàng Hoa Sen, 9 Trần Duy Hưng, Cầu Giấy"></div>
+          <label style="display:flex;align-items:center;gap:12px;min-height:44px;font-weight:500"><span class="switch"><input type="checkbox" ${f.same ? 'checked' : ''} data-act="same"><span></span></span>Người nhận là người đặt</label>
+          ${f.same ? '' : `<div class="row2"><div class="field"><label for="rn">Người nhận</label><input class="input" id="rn"></div><div class="field"><label for="rp">SĐT người nhận</label><input class="input" id="rp" type="tel"></div></div>`}
+          <div class="field"><label for="cr">Người giao</label><input class="input" id="cr" placeholder="Không bắt buộc"></div>` : ''}
+        </section>
+        <section class="card pad stack" aria-labelledby="f4"><h2 id="f4">Tiền và ghi chú</h2>
+          <div class="row2"><div class="field"><label for="sh">Phí ship (đ)</label><input class="input" id="sh" inputmode="numeric" value="${f.ship.toLocaleString('vi-VN')}"></div><div class="field"><label for="dc">Giảm giá (đ)</label><input class="input" id="dc" inputmode="numeric" value="${f.discount.toLocaleString('vi-VN')}"></div></div>
+          <div class="field"><label for="dp">Đã cọc (đ)</label><input class="input" id="dp" inputmode="numeric" value="${f.deposit.toLocaleString('vi-VN')}"><span class="hint">Khách trả nốt thì sửa bằng tổng tiền.</span></div>
+          <div class="field"><label for="cm">Lời chúc trên thiệp</label><input class="input" id="cm" placeholder="Không bắt buộc"></div>
+          <div class="field"><label for="nt">Ghi chú</label><textarea class="textarea" id="nt">Giao đến sảnh trước 14:30</textarea></div>
+        </section>
+      </div>
+      <div class="sticky"><div><div class="t">Tổng ${fmt(t)} · Còn lại</div><div class="v">${fmt(Math.max(0, t - f.deposit))}</div></div><button class="btn btn-ink" type="button" data-act="toast" data-msg="Đã lưu đơn (mockup)">Lưu đơn</button></div>`;
+  },
+
+  products() {
+    const list = Object.entries(P).filter(([, p]) => state.prodCat === 'all' || p.cat === state.prodCat);
+    const chips = `<div class="chips" role="group" aria-label="Lọc theo danh mục" style="margin:12px -16px">${[['all', 'Tất cả (68)'], ...CATS.map(c => [c.id, `${c.name} (${c.count})`])].map(([k, l]) => `<button class="chip" type="button" data-act="pcat" data-v="${k}" aria-pressed="${state.prodCat === k}">${l}</button>`).join('')}</div>`;
+    const grid = `<div class="pgrid">${list.map(([c, p]) => `<div class="card pcard ${p.visible ? '' : 'hidden'}"><span class="pcard-photo"><img src="${IMG}${p.img}" alt="${esc(p.name)}" width="300" height="400" loading="lazy"></span>
+      <div class="body"><span class="code">${c}</span><span class="nm">${esc(p.name)}</span>${p.price === null ? '<span class="tag">Chưa có giá</span>' : `<span class="pr">${fmt(p.price)}</span>`}
+      <label class="vis">Hiện trên web<span class="switch"><input type="checkbox" ${p.visible ? 'checked' : ''} data-act="vis" data-v="${c}" aria-label="Hiện ${esc(p.name)} trên web"><span></span></span></label></div></div>`).join('')}</div>`;
+    const quick = `<div class="card pad"><div class="qe">${list.map(([c, p]) => `<div class="qerow"><img src="${IMG}${p.img}" alt="" width="48" height="60" loading="lazy">
+      <div><span class="code">${c}</span><label class="sr" for="qn-${c}">Tên ${c}</label><input class="input" id="qn-${c}" value="${esc(p.name)}"></div>
+      <div class="price"><label class="sr" for="qp-${c}">Giá ${c}</label><input class="input" id="qp-${c}" inputmode="numeric" placeholder="Liên hệ" value="${p.price ? p.price.toLocaleString('vi-VN') : ''}"></div>
+      <span class="switch"><input type="checkbox" ${p.visible ? 'checked' : ''} aria-label="Hiện ${c} trên web"><span></span></span></div>`).join('')}</div>
+      <button class="btn btn-ink btn-block" type="button" style="margin-top:12px" data-act="toast" data-msg="Đã lưu ${list.length} sản phẩm (mockup)">Lưu tất cả</button></div>`;
+    return `
+      <div class="shead"><h1>Sản phẩm</h1><div class="actions"><a class="btn btn-light btn-sm" href="#/categories">${icon('tag', 'icon-sm')}Danh mục</a><a class="btn btn-accent" href="#/product-new" aria-label="Thêm sản phẩm">${icon('plus')}</a></div></div>
+      <div class="search" style="margin-top:12px"><span>${icon('search')}</span><label class="sr" for="psrch">Tìm sản phẩm</label><input class="input" id="psrch" placeholder="Tìm theo tên hoặc mã"></div>
+      ${chips}
+      <div class="shead"><span class="muted small">${list.length} mẫu đang xem · mẫu mờ là đang ẩn khỏi web</span><div class="seg" role="group" aria-label="Chế độ"><button type="button" data-act="quick" data-v="0" aria-pressed="${!state.quick}">Lưới</button><button type="button" data-act="quick" data-v="1" aria-pressed="${state.quick}">Sửa nhanh</button></div></div>
+      ${state.quick ? quick : grid}`;
+  },
+
+  'product-new'() {
+    const cat = state.newCat ?? 'bo', c = CATS.find(x => x.id === cat);
+    const nextCode = `${c.prefix}-${String(c.count + 1).padStart(3, '0')}`;
+    return `
+      <a class="back" href="#/products">${icon('back')}Sản phẩm</a>
+      <h1 style="margin:8px 0 16px">Thêm sản phẩm</h1>
+      <div class="card pad stack">
+        <div class="autocode">${icon('tag', 'icon-sm')}<span>Mã sẽ tự sinh khi lưu: <b>${nextCode}</b></span></div>
+        <div class="field"><span class="label">Ảnh</span><div class="upl"><img src="${IMG}bo/bo-20-1.jpg" alt="Ảnh chính" width="88" height="110"><button type="button">${icon('image')}Thêm ảnh</button></div><span class="hint">Ảnh đầu tiên là ảnh chính.</span></div>
+        <div class="field"><label for="pn">Tên mẫu <span class="req">*</span></label><input class="input" id="pn" placeholder="Ví dụ: Bó hồng pastel"></div>
+        <div class="field"><label for="pc">Danh mục <span class="req">*</span></label><select class="input fselect" id="pc" data-act="newcat">${CATS.map(x => `<option value="${x.id}" ${x.id === cat ? 'selected' : ''}>${x.name}</option>`).join('')}</select></div>
+        <div class="field"><label for="pp">Giá (đ)</label><input class="input" id="pp" inputmode="numeric" placeholder="Để trống: Liên hệ báo giá"></div>
+        <div class="row2"><div class="field"><label for="psz">Kích thước</label><input class="input" id="psz" placeholder="40 x 55 cm"></div><div class="field"><label for="pcl">Màu sắc</label><input class="input" id="pcl" placeholder="Hồng, trắng"></div></div>
+        <div class="field"><label for="pd">Mô tả</label><textarea class="textarea" id="pd"></textarea></div>
+        <label style="display:flex;align-items:center;justify-content:space-between;min-height:44px;font-weight:600">Hiện trên web<span class="switch"><input type="checkbox" checked><span></span></span></label>
+        <button class="btn btn-ink btn-block" type="button" data-act="toast" data-msg="Đã tạo ${nextCode} (mockup)">Lưu sản phẩm</button>
+      </div>`;
+  },
+
+  categories() {
+    return `
+      <a class="back" href="#/products">${icon('back')}Sản phẩm</a>
+      <div class="shead" style="margin-top:8px"><h1>Danh mục</h1><button class="btn btn-accent" type="button" data-act="newcat-dlg" aria-label="Thêm danh mục">${icon('plus')}</button></div>
+      <div class="card pad"><div class="tasks">${CATS.map((c, i) => `<div class="task" style="grid-template-columns:auto minmax(0,1fr) auto;align-items:center">
+        <span class="pill st-NEW" style="min-width:52px;justify-content:center">${c.prefix}</span>
+        <div><div class="tt">${c.name}</div><div class="time">${c.count} mẫu · mã tiếp theo ${c.prefix}-${String(c.count + 1).padStart(3, '0')}</div></div>
+        <div class="actions" style="align-items:center"><button class="icon-btn" type="button" aria-label="Đưa ${c.name} lên" ${i ? '' : 'disabled'}>${icon('up')}</button><span class="switch"><input type="checkbox" checked aria-label="Hiện ${c.name} trên web"><span></span></span></div></div>`).join('')}</div></div>
+      <p class="muted small" style="margin-top:12px">Tắt danh mục thì mọi mẫu trong đó ẩn khỏi trang khách. Danh mục đã có mẫu không xóa được.</p>`;
+  },
+
+  customers() {
+    const rows = CUSTOMERS.map(n => { const os = O.filter(o => o.customer === n); const done = os.filter(o => o.status === 'DONE'); return { n, phone: os[0]?.phone ?? '', count: os.length, spent: done.reduce((s, o) => s + total(o), 0) }; });
+    const colors = ['ov-lav', 'ov-peach', 'ov-sky', 'ov-mint'];
+    return `
+      <h1 style="margin-bottom:16px">Khách hàng</h1>
+      <div class="search" style="margin-bottom:16px"><span>${icon('search')}</span><label class="sr" for="csrch">Tìm khách</label><input class="input" id="csrch" type="search" placeholder="Tìm theo tên hoặc số điện thoại"></div>
+      <div class="clist">${rows.map((r, i) => `<a class="card crow" href="#/customer/${encodeURIComponent(r.n)}"><span class="avatar ${colors[i % 4]}">${r.n.split(' ').slice(-1)[0].slice(0, 2).toUpperCase()}</span><span><span class="nm">${esc(r.n)}</span><br><span class="muted small">${r.phone}</span></span><span style="text-align:right" class="small"><b>${r.count} đơn</b><br><span class="muted">${fmt(r.spent)}</span></span></a>`).join('')}</div>`;
+  },
+
+  customer(name) {
+    name = decodeURIComponent(name);
+    const os = O.filter(o => o.customer === name).sort((a, b) => b.date.localeCompare(a.date));
+    const spent = os.filter(o => o.status === 'DONE').reduce((s, o) => s + total(o), 0);
+    return `
+      <a class="back" href="#/customers">${icon('back')}Khách hàng</a>
+      <div class="shead" style="margin-top:8px"><div><h1>${esc(name)}</h1><p class="muted" style="margin-top:4px">${os[0]?.phone ?? ''}</p></div><a class="round-btn" href="tel:${(os[0]?.phone ?? '').replace(/\s/g, '')}" aria-label="Gọi">${icon('phone')}</a></div>
+      <div class="sum" style="margin:16px 0"><div><b>${os.length}</b><span>Tổng số đơn</span></div><div><b>${fmt(spent)}</b><span>Đã mua (đơn hoàn thành)</span></div></div>
+      <div class="card pad"><dl class="kv"><dt>Địa chỉ</dt><dd>${esc(os.find(o => o.addr)?.addr ?? 'Chưa có')}</dd><dt>Ghi chú</dt><dd class="muted">Không có</dd></dl></div>
+      <section class="section"><div class="shead"><h2>Lịch sử đơn</h2><a class="btn btn-light btn-sm" href="#/new">${icon('plus', 'icon-sm')}Tạo đơn</a></div><div class="olist">${os.map(orderCard).join('')}</div></section>`;
+  },
+
+  settings() {
+    const revenue = O.filter(o => o.status === 'DONE').reduce((sum, o) => sum + total(o), 0);
+    const cancelled = O.filter(o => o.status === 'CANCEL').length;
+    const cancellationRate = O.length ? cancelled / O.length * 100 : 0;
+    const per = {};
+    O.filter(o => o.status === 'DONE').forEach(o => o.items.forEach(([code, qty]) => {
+      const row = per[code] ??= { code, name: P[code].name, quantity: 0, revenue: 0 };
+      row.quantity += qty; row.revenue += qty * (P[code].price || 0);
+    }));
+    const products = Object.values(per).sort((a, b) => state.shopRank === 'revenue'
+      ? b.revenue - a.revenue || b.quantity - a.quantity || a.name.localeCompare(b.name, 'vi')
+      : b.quantity - a.quantity || b.revenue - a.revenue || a.name.localeCompare(b.name, 'vi')).slice(0, 5);
+    return `
+      <a class="back" href="#/home">${icon('back')}Tổng quan</a>
+      <h1 style="margin:8px 0 16px">Thông tin shop</h1>
+      <section class="shop-totals" aria-label="Tổng quan toàn hệ thống">
+        <div class="shop-total shop-total-revenue"><span class="shop-total-label">Tổng doanh thu</span><strong>${fmt(revenue)}</strong><small>Đơn đã hoàn thành</small></div>
+        <div class="shop-total shop-total-tasks"><span class="shop-total-label">Tổng công việc</span><strong>${O.length.toLocaleString('vi-VN')}</strong><small>Tất cả đơn trong hệ thống</small></div>
+        <div class="shop-total shop-total-cancelled"><span class="shop-total-label">Tỷ lệ hủy đơn</span><strong>${cancellationRate.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%</strong><small>${cancelled}/${O.length} đơn đã hủy</small></div>
+      </section>
+      <section class="section" aria-labelledby="top-products-heading">
+        <div class="shead shop-products-head">
+          <div class="shop-products-title"><h2 id="top-products-heading">Top 5 sản phẩm bán chạy</h2><p class="muted small">Chỉ tính các đơn đã hoàn thành</p></div>
+          <div class="seg shop-rank-switch" role="group" aria-label="Xếp hạng sản phẩm theo">
+            <button class="segbtn" type="button" data-act="shop-rank" data-v="quantity" aria-pressed="${state.shopRank === 'quantity'}">Số lượng</button>
+            <button class="segbtn" type="button" data-act="shop-rank" data-v="revenue" aria-pressed="${state.shopRank === 'revenue'}">Doanh thu</button>
+          </div>
+        </div>
+        <ol class="shop-product-list">${products.map((p, i) => `<li class="card shop-product-row"><span class="shop-product-rank">${i + 1}</span><span class="shop-product-copy"><b>${esc(p.name)}</b><small>${p.code}</small></span><span class="shop-product-stats"><span class="shop-product-stat ${state.shopRank === 'quantity' ? 'is-primary' : ''}"><b>${p.quantity.toLocaleString('vi-VN')}</b><small>đã bán</small></span><span class="shop-product-stat ${state.shopRank === 'revenue' ? 'is-primary' : ''}"><b>${fmt(p.revenue)}</b><small>doanh thu</small></span></span></li>`).join('')}</ol>
+      </section>
+      <section class="section" aria-labelledby="shop-contact-heading">
+        <div class="shead"><h2 id="shop-contact-heading">Thông tin hiển thị cho khách</h2></div>
+        <div class="card pad stack">
+          <p class="muted small">Các thông tin này hiện trên trang khách và dùng cho nút đặt hàng.</p>
+          <div class="field"><label for="sn">Tên shop</label><input class="input" id="sn" value="Bích Ngọc Florist"></div>
+          <div class="field"><label for="sp">Số điện thoại</label><input class="input" id="sp" type="tel" placeholder="0912 345 678"></div>
+          <div class="field"><label for="sz">Zalo (số điện thoại)</label><input class="input" id="sz" type="tel" placeholder="0912 345 678"><span class="hint">Nút Zalo mở zalo.me/số điện thoại.</span></div>
+          <div class="field"><label for="sf">Trang Facebook</label><input class="input" id="sf" value="https://www.facebook.com/BichNgocFlorist"></div>
+          <div class="field"><label for="sm">Messenger</label><input class="input" id="sm" value="https://m.me/BichNgocFlorist"></div>
+          <div class="field"><label for="st">TikTok</label><input class="input" id="st" placeholder="https://www.tiktok.com/@tenkenh"></div>
+          <button class="btn btn-ink btn-block" type="button" data-act="toast" data-msg="Đã lưu thông tin shop (mockup)">Lưu</button>
+        </div>
+      </section>
+      <div class="actions" style="margin-top:16px"><a class="btn btn-light" href="catalog.html">Xem trang khách</a><button class="btn btn-light" type="button" data-act="toast" data-msg="Đổi mật khẩu (mockup)">Đổi mật khẩu</button><a class="btn btn-danger" href="#/login">Đăng xuất</a></div>`;
+  },
+};
+
+/* ===== Vẽ và sự kiện ===== */
+function route() { const [, n = 'home', a] = location.hash.split('/'); return { n, a }; }
+function render() {
+  const { n, a } = route();
+  if (!V[n]) { location.hash = '#/home'; return; }
+  const html = V[n](a);
+  $('#root').innerHTML = n === 'login' ? html : shell(n, html, n === 'new');
+}
+let tt;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2600); }
+function rerender() { const y = scrollY; render(); scrollTo(0, y); }
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, v = b.dataset.v;
+  if (a === 'menu') {
+    e.preventDefault();
+    const m = $('#menu'), r = b.getBoundingClientRect(), o = O.find(x => x.id === +b.dataset.id);
+    m.innerHTML = `<button type="button" data-act="toast" data-msg="Mở form sửa đơn (mockup)">${icon('edit')}Sửa</button>${['NEW', 'DELIVERING'].includes(o.status) ? `<button type="button" data-act="cancel" data-id="${o.id}">${icon('ban')}Hủy đơn</button>` : ''}${['NEW', 'CANCEL'].includes(o.status) ? `<button type="button" class="danger" data-act="delete" data-id="${o.id}">${icon('trash')}Xóa</button>` : ''}`;
+    m.style.top = Math.min(r.bottom + 4, innerHeight - 160) + 'px'; m.style.left = Math.max(16, r.right - 170) + 'px';
+    m.showPopover();
+  }
+  else if (a === 'cancel' || a === 'delete') {
+    $('#menu').hidePopover?.();
+    const o = O.find(x => x.id === +b.dataset.id), d = $('#dlg');
+    d.innerHTML = `<div class="dlg-b"><h2>${a === 'cancel' ? 'Hủy đơn này?' : 'Xóa hẳn đơn này?'}</h2><p class="muted">${o.code} · ${esc(o.customer)}. ${a === 'cancel' ? 'Đơn vẫn được giữ lại và có thể khôi phục.' : 'Không khôi phục được sau khi xóa.'}</p><div class="actions"><button class="btn btn-light" type="button" data-act="close">Không</button><button class="btn ${a === 'cancel' ? 'btn-ink' : 'btn-danger'}" type="button" data-act="${a}-ok" data-id="${o.id}">${a === 'cancel' ? 'Hủy đơn' : 'Xóa'}</button></div></div>`;
+    d.showModal();
+  }
+  else if (a === 'cancel-ok') { O.find(x => x.id === +b.dataset.id).status = 'CANCEL'; $('#dlg').close(); toast('Đã hủy đơn'); rerender(); }
+  else if (a === 'delete-ok') { O.splice(O.findIndex(x => x.id === +b.dataset.id), 1); $('#dlg').close(); toast('Đã xóa đơn'); location.hash = '#/home'; rerender(); }
+  else if (a === 'close') $('#dlg').close();
+  else if (a === 'status') { O.find(x => x.id === +b.dataset.id).status = v; toast(`Đã chuyển sang ${ST[v]}`); rerender(); }
+  else if (a === 'hfilter') { state.homeFilter = v; rerender(); }
+  else if (a === 'filter-new') { e.preventDefault(); state.homeFilter = 'NEW'; state.homeRange = 'all'; rerender(); $('#h-up').scrollIntoView({ behavior: 'smooth' }); }
+  else if (a === 'go-week') { state.calView = 'week'; state.sumScope = 'week'; state.calDay = TODAY; }
+  else if (a === 'day') { state.calDay = v; rerender(); }
+  else if (a === 'view') { state.calView = v; state.sumScope = v; rerender(); }
+  else if (a === 'scope') { state.sumScope = v; rerender(); }
+  else if (a === 'prev' || a === 'next') {
+    const s = a === 'prev' ? -1 : 1, d = state.calDay;
+    if (state.calView === 'week') state.calDay = addDays(d, 7 * s);
+    else { const [y, m] = d.split('-').map(Number); const nd = new Date(Date.UTC(y, m - 1 + s, 1)); state.calDay = ymd(nd); }
+    rerender();
+  }
+  else if (a === 'picker') { state.picker = !state.picker; rerender(); }
+  else if (a === 'go-today') { state.calDay = TODAY; state.picker = false; rerender(); }
+  else if (a === 'toggle-empty') { state.todayEmpty = !state.todayEmpty; rerender(); }
+  else if (a === 'quick') { state.quick = v === '1'; rerender(); }
+  else if (a === 'pcat') { state.prodCat = v; rerender(); }
+  else if (a === 'ordercat') { state.orderCat = v; rerender(); }
+  else if (a === 'shop-rank') { state.shopRank = v; rerender(); }
+  else if (a === 'vis') { P[v].visible = b.checked; toast(b.checked ? 'Đã hiện trên web' : 'Đã ẩn khỏi web'); rerender(); }
+  else if (a === 'add') { const f = state.form, ex = f.lines.find(l => l[0] === v); ex ? ex[1]++ : f.lines.push([v, 1, '']); toast(`Đã thêm ${P[v].name}`); rerender(); }
+  else if (a === 'qty') { const f = state.form, l = f.lines[+b.dataset.i]; l[1] += +b.dataset.d; if (l[1] < 1) f.lines.splice(+b.dataset.i, 1); rerender(); }
+  else if (a === 'type') { state.form.type = v; rerender(); }
+  else if (a === 'channel') { state.form.channel = v; rerender(); }
+  else if (a === 'same') { state.form.same = b.checked; rerender(); }
+  else if (a === 'newcat-dlg') { const d = $('#dlg'); d.innerHTML = `<div class="dlg-b"><h2>Thêm danh mục</h2><div class="field"><label for="cn">Tên danh mục</label><input class="input" id="cn" value="Hoa cưới"></div><div class="field"><label for="cp">Tiền tố mã</label><input class="input" id="cp" value="HC"><span class="hint">Đề xuất từ tên. Mẫu mới sẽ có mã HC-001, HC-002...</span></div><div class="actions"><button class="btn btn-light" type="button" data-act="close">Hủy</button><button class="btn btn-ink" type="button" data-act="close">Thêm</button></div></div>`; d.showModal(); }
+  else if (a === 'toast') { $('#menu').hidePopover?.(); toast(b.dataset.msg); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.act === 'range') { state.homeRange = t.value; rerender(); }
+  if (t.dataset.act === 'newcat') { state.newCat = t.value; rerender(); }
+  if (t.dataset.act === 'pick-m' || t.dataset.act === 'pick-y') { const m = $('#pm').value.padStart(2, '0'), y = $('#py').value; state.calDay = `${y}-${m}-01`; rerender(); }
+});
+$('#dlg').addEventListener('click', e => { if (e.target.id === 'dlg') $('#dlg').close(); });
+addEventListener('hashchange', () => { render(); scrollTo(0, 0); });
+if (!location.hash) location.hash = '#/home';
+render();
+</script>
+</body>
+</html>

@@ -3,46 +3,39 @@ export interface PricedLine {
   qty: number;
 }
 
-export interface OrderTotals {
+export interface OrderMoney {
   subtotal: number;
   discount: number;
   shippingFee: number;
   total: number;
+  deposit: number;
 }
 
-export class TotalsError extends Error {}
-
-/** Server-side source of truth for order money (spec 3.6). */
-export function computeTotals(lines: PricedLine[], discount: number, shippingFee: number): OrderTotals {
-  for (const n of [discount, shippingFee]) {
-    if (!Number.isInteger(n) || n < 0) throw new TotalsError("Giảm giá và phí giao phải là số tiền không âm");
+export class MoneyError extends Error {
+  constructor(
+    message: string,
+    public readonly field: "discount" | "shippingFee" | "deposit" | "items",
+  ) {
+    super(message);
   }
+}
+
+const isMoney = (n: number) => Number.isInteger(n) && n >= 0 && n <= 2_000_000_000;
+
+/** Server-side source of truth for order money (spec 4, "Tiền"). */
+export function computeMoney(lines: PricedLine[], discount: number, shippingFee: number, deposit: number): OrderMoney {
+  if (!isMoney(discount)) throw new MoneyError("Giảm giá không hợp lệ.", "discount");
+  if (!isMoney(shippingFee)) throw new MoneyError("Phí ship không hợp lệ.", "shippingFee");
+  if (!isMoney(deposit)) throw new MoneyError("Tiền cọc không hợp lệ.", "deposit");
   const subtotal = lines.reduce((sum, l) => {
-    if (!Number.isInteger(l.unitPrice) || l.unitPrice < 0) throw new TotalsError("Đơn giá không hợp lệ");
-    if (!Number.isInteger(l.qty) || l.qty <= 0) throw new TotalsError("Số lượng phải là số nguyên dương");
+    if (!isMoney(l.unitPrice)) throw new MoneyError("Đơn giá không hợp lệ.", "items");
+    if (!Number.isInteger(l.qty) || l.qty <= 0 || l.qty > 10000) throw new MoneyError("Số lượng phải là số nguyên từ 1 đến 10000.", "items");
     return sum + l.unitPrice * l.qty;
   }, 0);
-  if (discount > subtotal) throw new TotalsError("Giảm giá không được lớn hơn tạm tính");
-  return { subtotal, discount, shippingFee, total: subtotal - discount + shippingFee };
+  if (discount > subtotal) throw new MoneyError("Giảm giá không được lớn hơn tạm tính.", "discount");
+  const total = subtotal - discount + shippingFee;
+  if (deposit > total) throw new MoneyError("Tiền cọc không được lớn hơn tổng tiền.", "deposit");
+  return { subtotal, discount, shippingFee, total, deposit };
 }
 
-export interface PaymentRow {
-  type: "DEPOSIT" | "PAYMENT" | "REFUND";
-  amount: number;
-  voidedAt: Date | null;
-}
-
-/** Đã thu ròng: deposits + payments - refunds, ignoring voided rows. */
-export function netPaid(payments: PaymentRow[]): number {
-  return payments.reduce((sum, p) => {
-    if (p.voidedAt) return sum;
-    return p.type === "REFUND" ? sum - p.amount : sum + p.amount;
-  }, 0);
-}
-
-export type PaymentState = "UNPAID" | "DEPOSITED" | "PAID";
-
-export function paymentState(total: number, paid: number): PaymentState {
-  if (paid <= 0) return "UNPAID";
-  return paid >= total ? "PAID" : "DEPOSITED";
-}
+export const remaining = (o: { total: number; deposit: number }) => Math.max(0, o.total - o.deposit);

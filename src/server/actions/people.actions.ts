@@ -1,67 +1,41 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { actionOwner, actionUser } from "@/server/auth/session";
+import { actionUser } from "@/server/auth/session";
 import { INVALID_ID, toActionState, type ActionState } from "@/server/errors";
 import { createCustomer, updateCustomer } from "@/server/services/customers.service";
-import { createStaff, resetPassword, setLocked } from "@/server/services/users.service";
+import { updateShopSettings } from "@/server/services/settings.service";
 import { idsValid } from "@/lib/ids";
 
-export type CustomerActionState = ActionState & { id?: string };
+const str = (form: FormData, key: string, max: number) => String(form.get(key) ?? "").slice(0, max);
 
-export async function saveCustomerAction(customerId: string | null, _prev: CustomerActionState, form: FormData): Promise<CustomerActionState> {
+export async function saveCustomerAction(customerId: string | null, _prev: ActionState & { id?: string }, form: FormData): Promise<ActionState & { id?: string }> {
   if (!idsValid(customerId)) return INVALID_ID;
-  const input = {
-    name: String(form.get("name") ?? "").slice(0, 120),
-    phone: String(form.get("phone") ?? "").slice(0, 30),
-    email: String(form.get("email") ?? "").slice(0, 120),
-    address: String(form.get("address") ?? "").slice(0, 300),
-    note: String(form.get("note") ?? "").slice(0, 1000),
-  };
+  const input = { name: str(form, "name", 120), phone: str(form, "phone", 30), address: str(form, "address", 300), note: str(form, "note", 1000) };
   try {
-    const user = await actionUser();
-    const c = customerId ? await updateCustomer(user, customerId, input) : await createCustomer(user, input);
-    revalidatePath("/customers");
-    revalidatePath(`/customers/${c.id}`);
+    await actionUser();
+    const c = customerId ? await updateCustomer(customerId, input) : await createCustomer(input);
+    revalidatePath("/admin/customers", "layout");
     return { ok: true, id: c.id, message: customerId ? "Đã lưu khách hàng" : "Đã thêm khách hàng" };
   } catch (e) {
     return toActionState(e);
   }
 }
 
-export async function createStaffAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+export async function saveSettingsAction(_prev: ActionState, form: FormData): Promise<ActionState> {
   try {
-    const user = await actionOwner();
-    await createStaff(user, await headers(), {
-      name: String(form.get("name") ?? "").slice(0, 120),
-      username: String(form.get("username") ?? "").slice(0, 30),
-      password: String(form.get("password") ?? "").slice(0, 128),
+    await actionUser();
+    await updateShopSettings({
+      shopName: str(form, "shopName", 120),
+      phone: str(form, "phone", 30),
+      zaloPhone: str(form, "zaloPhone", 30),
+      facebookUrl: str(form, "facebookUrl", 300),
+      messengerUrl: str(form, "messengerUrl", 300),
+      tiktokUrl: str(form, "tiktokUrl", 300),
     });
-    revalidatePath("/staff");
-    return { ok: true, message: "Đã tạo tài khoản. Gửi tên đăng nhập và mật khẩu tạm cho nhân viên; họ sẽ được nhắc đổi mật khẩu." };
-  } catch (e) {
-    return toActionState(e);
-  }
-}
-
-export async function resetPasswordAction(userId: string, password: string): Promise<ActionState> {
-  if (!idsValid(userId)) return INVALID_ID;
-  try {
-    await resetPassword(await actionOwner(), await headers(), userId, String(password).slice(0, 128));
-    revalidatePath("/staff");
-    return { ok: true, message: "Đã đặt mật khẩu tạm mới và đăng xuất tài khoản này khỏi mọi thiết bị." };
-  } catch (e) {
-    return toActionState(e);
-  }
-}
-
-export async function setLockedAction(userId: string, locked: boolean): Promise<ActionState> {
-  if (!idsValid(userId)) return INVALID_ID;
-  try {
-    await setLocked(await actionOwner(), await headers(), userId, locked);
-    revalidatePath("/staff");
-    return { ok: true, message: locked ? "Đã khóa tài khoản và đăng xuất khỏi mọi thiết bị." : "Đã mở khóa tài khoản." };
+    revalidatePath("/");
+    revalidatePath("/admin/settings");
+    return { ok: true, message: "Đã lưu thông tin shop. Trang khách đã cập nhật." };
   } catch (e) {
     return toActionState(e);
   }

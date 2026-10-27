@@ -8,10 +8,9 @@ next-env.d.ts
 src/generated/
 
 # Local env and uploads
-.env
-.env.local
-.env.test
-storage/
+.env*
+!.env.example
+/storage/
 
 # OS / editor
 .DS_Store

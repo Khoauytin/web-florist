@@ -1,7 +1,7 @@
 /**
  * One-off import of the old static catalog (legacy/index.html + legacy/images) into the database.
- * The old data has no names or prices: products get placeholder names ("Hoa bó 01"), price = null
- * ("chưa có giá"), mode Linh hoạt, stock 0. Re-running skips products whose code already exists.
+ * The old data has no names or prices: products get placeholder names ("Hoa bó 01") and price = null
+ * ("Liên hệ báo giá"), visible on the website. Re-running skips products whose code already exists.
  */
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
@@ -37,8 +37,6 @@ function parseLegacy(html: string): LegacyProduct[] {
 }
 
 async function main() {
-  const owner = await prisma.user.findFirst({ where: { role: "owner" }, orderBy: { createdAt: "asc" } });
-  if (!owner) throw new Error("Run `npm run db:seed` first to create the owner account.");
   const legacy = parseLegacy(await readFile(path.join(LEGACY, "index.html"), "utf8"));
   const counters: Record<string, number> = {};
   const report = { created: 0, skipped: 0, images: 0, problems: [] as string[] };
@@ -56,16 +54,14 @@ async function main() {
       report.skipped += 1;
       continue;
     }
-    const category = await prisma.category.upsert({ where: { name: cat.name }, update: {}, create: { name: cat.name } });
+    const category = await prisma.category.upsert({ where: { name: cat.name }, update: {}, create: { name: cat.name, codePrefix: cat.prefix } });
     const product = await prisma.product.create({
       data: {
         code,
         name: `${cat.name} ${String(n).padStart(2, "0")}`,
         categoryId: category.id,
         price: null,
-        fulfillmentMode: "FLEXIBLE",
-        createdById: owner.id,
-        updatedById: owner.id,
+        isVisible: true,
       },
     });
     for (const [i, rel] of item.images.entries()) {
@@ -79,9 +75,6 @@ async function main() {
         report.problems.push(`${code}: không đọc được ảnh ${rel} (${(e as Error).message})`);
       }
     }
-    await prisma.auditLog.create({
-      data: { actorId: owner.id, action: "product.import", entityType: "product", entityId: product.id, summary: `Nhập ${code} từ catalog cũ (chưa có giá)` },
-    });
     report.created += 1;
   }
 

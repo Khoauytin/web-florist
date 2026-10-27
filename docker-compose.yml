@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: florist
       POSTGRES_PASSWORD: florist
-      POSTGRES_DB: florist
+      POSTGRES_DB: florist_v2
       TZ: UTC
     ports:
       - "5433:5432"
